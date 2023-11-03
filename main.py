@@ -1,10 +1,14 @@
+from typing import Any
+from datetime import datetime
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
-
+from sqlalchemy.orm import relationship
 from app import Base, session, engine, app
 from utils import template, sha512
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 import random
+import requests
+from dataclasses import dataclass
 
 
 # Models
@@ -23,12 +27,70 @@ class User(Base):
         return "<User(id='%s', username='%s')>" % (self.id, self.username)
 
 
+class TradeServer(Base):
+    __tablename__ = "TradeServers"
+    ticker = Column(String, primary_key=True, nullable=False, unique=True)
+    active = Column(Boolean, nullable=False)
+    trades = relationship('Trade', backref="trade_server")
+
+    def __init__(self, ticker: str, active: bool = False):
+        self.ticker = ticker
+        self.active = active
+
+    def start(self):
+        ...
+
+    def stop(self):
+        ...
+
+
+class Trade(Base):
+    __tablename__ = "Trades"
+    id = Column(Integer, primary_key=True)
+    trade_server_id = Column(Integer, ForeignKey("TradeServers.ticker"))
+    amount = Column(Integer)
+    opening_price = Column(Integer, nullable=False)
+    closing_price = Column(Integer)
+    opened = Column(DateTime, default=datetime.now)
+    closed = Column(DateTime)
+
+
 Base.metadata.create_all(engine)
 
 # Create default admin
 if session.query(User).filter_by(username="admin").first() is None:
     session.add(User(username="admin", password=sha512("admin")))
     session.commit()
+
+# Create test TradeServer
+if session.query(TradeServer).filter_by(ticker="AAPL").first() is None:
+    session.add(TradeServer(ticker="AAPL", active=True))
+    session.commit()
+
+
+@dataclass
+class Result:
+    is_ok: bool
+    value: Any
+
+
+# Broker API
+
+class Broker:
+    name: str = "Broker"
+    working_hours: str = "8:00 - 18:00"
+
+    @staticmethod
+    def is_available(ticker: str) -> Result:
+        ...
+
+    @staticmethod
+    def sell(ticker: str) -> Result:
+        ...
+
+    @staticmethod
+    def buy(ticker: str, amount: int) -> Result:
+        ...
 
 
 # Routes
@@ -75,7 +137,13 @@ async def is_logged_in(request: Request, call_next):
 
 @app.get("/dashboard")
 async def dashboard():
-    page = template("dashboard.html").render()
+    trade_servers = session.query(TradeServer).all()
+    currencies = requests.get("https://data.kurzy.cz/json/meny/b.json").json()["kurzy"]
+    broker = {
+        "name": Broker.name,
+        "working_hours": Broker.working_hours
+    }
+    page = template("dashboard.html").render(trade_servers=trade_servers, broker=broker, currencies=currencies)
     return HTMLResponse(page)
 
 
@@ -94,3 +162,9 @@ async def logout(request: Request, response: Response):
     else:
         return {"error": "Empty token"}
     return RedirectResponse(status_code=302, url="/")
+
+
+@app.post("/change_currency")
+async def change_currency(request: Request):
+    print(await request.form())
+    return RedirectResponse(status_code=302, url="/dashboard")
