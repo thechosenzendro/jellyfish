@@ -33,9 +33,13 @@
             <td>{{broker.name}}</td>
             <td>{{broker.working_hours}}</td>
             <td>
-                <select id="currency" hx-post="/change_currency">
+                <select id="currency" name="currency" hx-post="/change_currency" hx-swap="innerHTML" hx-target="body">
                     {% for currency, data in currencies.items() %}
-                    <option value="{{ currency }}">{{currency}} - {{data.nazev}}</option>
+                        {% if data.selected %}
+                            <option value="{{ currency }}" selected>{{currency}} - {{data.nazev}}</option>
+                        {% else %}
+                            <option value="{{ currency }}">{{currency}} - {{data.nazev}}</option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </td>

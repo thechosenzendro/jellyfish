@@ -1,7 +1,7 @@
 from typing import Any
 from datetime import datetime
 from fastapi import Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import relationship
 from app import Base, session, engine, app
 from utils import template, sha512
@@ -10,6 +10,8 @@ import random
 import requests
 from dataclasses import dataclass
 
+
+# TODO: Change structure.
 
 # Models
 class User(Base):
@@ -27,11 +29,11 @@ class User(Base):
         return "<User(id='%s', username='%s')>" % (self.id, self.username)
 
 
-class TradeServer(Base):
+class TradeNode(Base):
     __tablename__ = "TradeServers"
     ticker = Column(String, primary_key=True, nullable=False, unique=True)
     active = Column(Boolean, nullable=False)
-    trades = relationship('Trade', backref="trade_server")
+    trades = relationship('Trade', backref="trade_node")
 
     def __init__(self, ticker: str, active: bool = False):
         self.ticker = ticker
@@ -55,6 +57,15 @@ class Trade(Base):
     closed = Column(DateTime)
 
 
+class Config(Base):
+    __tablename__ = "Config"
+    id = Column(Integer, primary_key=True)
+    currency = Column(String)
+
+    def __init__(self, currency: str):
+        self.currency = currency
+
+
 Base.metadata.create_all(engine)
 
 # Create default admin
@@ -63,9 +74,12 @@ if session.query(User).filter_by(username="admin").first() is None:
     session.commit()
 
 # Create test TradeServer
-if session.query(TradeServer).filter_by(ticker="AAPL").first() is None:
-    session.add(TradeServer(ticker="AAPL", active=True))
+if session.query(TradeNode).filter_by(ticker="AAPL").first() is None:
+    session.add(TradeNode(ticker="AAPL", active=True))
     session.commit()
+
+if session.query(Config).first() is None:
+    session.add(Config(currency="USD"))
 
 
 @dataclass
@@ -137,8 +151,15 @@ async def is_logged_in(request: Request, call_next):
 
 @app.get("/dashboard")
 async def dashboard():
-    trade_servers = session.query(TradeServer).all()
+    trade_servers = session.query(TradeNode).all()
     currencies = requests.get("https://data.kurzy.cz/json/meny/b.json").json()["kurzy"]
+    # TODO: Change this to a dict comprehension
+    print(currencies)
+    config = session.query(Config).first()
+    for currency, data in currencies.items():
+        if config.currency == currency:
+            data["selected"] = True
+    print(currencies)
     broker = {
         "name": Broker.name,
         "working_hours": Broker.working_hours
@@ -166,5 +187,21 @@ async def logout(request: Request, response: Response):
 
 @app.post("/change_currency")
 async def change_currency(request: Request):
-    print(await request.form())
+    currency = (await request.form()).get("currency")
+    session.query(Config).first().currency = currency
+    session.commit()
     return RedirectResponse(status_code=302, url="/dashboard")
+
+
+def healthcheck():
+    # TODO: Do some actual checking
+    return {
+        "trade_node_check": True,
+        "internet_check": True,
+        "broker_api_check": True
+    }
+
+
+@app.get("/healthcheck")
+async def healthcheck_wrapper():
+    return JSONResponse(healthcheck())
