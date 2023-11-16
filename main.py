@@ -1,72 +1,19 @@
+from fastapi import FastAPI
 from typing import Any
-from datetime import datetime
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from sqlalchemy.orm import relationship
-from app import Base, session, engine, app
-from utils import template, sha512
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from jellyserve.utils import template, sha512
+from jellyserve.orm import ORM
 import random
 import requests
 from dataclasses import dataclass
 
 
-# TODO: Change structure.
+app = FastAPI()
+orm = ORM()
+session = orm
 
-# Models
-class User(Base):
-    __tablename__ = "Users"
-    id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True)
-    password = Column(String)
-    session = Column(String, unique=True)
-
-    def __init__(self, username: str, password: str):
-        self.username = username
-        self.password = password
-
-    def __repr__(self):
-        return "<User(id='%s', username='%s')>" % (self.id, self.username)
-
-
-class TradeNode(Base):
-    __tablename__ = "TradeServers"
-    ticker = Column(String, primary_key=True, nullable=False, unique=True)
-    active = Column(Boolean, nullable=False)
-    trades = relationship('Trade', backref="trade_node")
-
-    def __init__(self, ticker: str, active: bool = False):
-        self.ticker = ticker
-        self.active = active
-
-    def start(self):
-        ...
-
-    def stop(self):
-        ...
-
-
-class Trade(Base):
-    __tablename__ = "Trades"
-    id = Column(Integer, primary_key=True)
-    trade_server_id = Column(Integer, ForeignKey("TradeServers.ticker"))
-    amount = Column(Integer)
-    opening_price = Column(Integer, nullable=False)
-    closing_price = Column(Integer)
-    opened = Column(DateTime, default=datetime.now)
-    closed = Column(DateTime)
-
-
-class Config(Base):
-    __tablename__ = "Config"
-    id = Column(Integer, primary_key=True)
-    currency = Column(String)
-
-    def __init__(self, currency: str):
-        self.currency = currency
-
-
-Base.metadata.create_all(engine)
+from models import User, TradeNode, Config
 
 # Create default admin
 if session.query(User).filter_by(username="admin").first() is None:
