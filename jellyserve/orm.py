@@ -9,9 +9,5 @@ class ORM:
         _Session = sessionmaker(bind=self._engine)
         self.session = _Session()
 
-        self.query = self.session.query
-        self.commit = self.session.commit
-        self.rollback = self.session.rollback
-
     def migrate(self):
         self.Base.metadata.create_all(self._engine)

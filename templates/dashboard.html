@@ -1,117 +1,143 @@
 <!DOCTYPE html>
+
 <head>
     <meta charset="UTF-8">
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <title>Dashboard</title>
 </head>
+
 <body>
-<div class="tickerSelectBox borderShadow">
-    <h1>Dashboard</h1>
-    {% for trade_server in trade_servers %}
-    <div class="tickerSelect">
-        <p class="center">{{ trade_server.ticker }}</p>
-    </div>
-    {% endfor %}
-    <form action="/logout" method="post" class="center">
-        <button type="submit" class="center">Odhlásit se</button>
-    </form>
-</div>
-<div id="statusBar" class="statusBar borderShadow">
-    <table>
-        <tr>
-            <th>Jméno Brokera</th>
-            <th>Pracovní hodiny</th>
-            <th>Měna</th>
-            <th>Zůstatek</th>
-            <th>Majetek</th>
-            <th>Marže</th>
-            <th>Volná marže</th>
-            <th>Hladina</th>
-            <th>Stav připojení</th>
-        </tr>
-        <tr>
-            <td>{{broker.name}}</td>
-            <td>{{broker.working_hours}}</td>
-            <td>
-                <select id="currency" name="currency" hx-post="/change_currency" hx-swap="innerHTML" hx-target="body">
-                    {% for currency, data in currencies.items() %}
-                        {% if data.selected %}
+    <div class="wrapper">
+        <div class="tickers border">
+            <h1>Dashboard</h1>
+            <div class="ticker" hx-get="/view/statistics" hx-swap="innerHTML" hx-target="#mainView">
+                <p class="center">Statistiky</p>
+            </div>
+            {% for trade_server in trade_servers %}
+            <div class="ticker" hx-get="/view/{{trade_server.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
+                <p class="center">{{ trade_server.ticker }}</p>
+            </div>
+
+            {% endfor %}
+
+            <form action="/logout" method="post" class="center">
+                <button type="submit" class="center">Odhlásit se</button>
+            </form>
+        </div>
+        <div id="mainView" class="mainView border"></div>
+        <div id="statusBar" class="statusBar border">
+            <table>
+                <tr>
+                    <th>Jméno Brokera</th>
+                    <th>Pracovní hodiny</th>
+                    <th>Měna</th>
+                    <th>Zůstatek</th>
+                    <th>Majetek</th>
+                    <th>Marže</th>
+                    <th>Volná marže</th>
+                    <th>Hladina</th>
+                    <th>Stav připojení</th>
+                </tr>
+                <tr>
+                    <td>{{broker.name}}</td>
+                    <td>{{broker.working_hours}}</td>
+                    <td>
+                        <select id="currency" name="currency" hx-post="/change_currency" hx-swap="innerHTML"
+                            hx-target="body">
+                            {% for currency, data in currencies.items() %}
+                            {% if data.selected %}
                             <option value="{{ currency }}" selected>{{currency}} - {{data.nazev}}</option>
-                        {% else %}
+                            {% else %}
                             <option value="{{ currency }}">{{currency}} - {{data.nazev}}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </td>
-            <td>xxxxx$</td>
-            <td>xxxxx$</td>
-            <td>xxxxx$</td>
-            <td>xxxxx$</td>
-            <td>xxxxx$</td>
-            <td>
-                <svg fill="#000000" height="100px" width="100px" version="1.1" id="Capa_1"
-                     xmlns="http://www.w3.org/2000/svg"
-                     class="connectionStatusIcon"
-                     viewBox="0 0 365.892 365.892" xml:space="preserve">
-                    <g>
-	                <circle cx="182.945" cy="286.681" r="41.494"/>
-                        <path d="M182.946,176.029c-35.658,0-69.337,17.345-90.09,46.398c-5.921,8.288-4.001,19.806,4.286,25.726
-		c3.249,2.321,6.994,3.438,10.704,3.438c5.754,0,11.423-2.686,15.021-7.724c13.846-19.383,36.305-30.954,60.078-30.954
-		c23.775,0,46.233,11.571,60.077,30.953c5.919,8.286,17.437,10.209,25.726,4.288c8.288-5.92,10.208-17.438,4.288-25.726
-		C252.285,193.373,218.606,176.029,182.946,176.029z"/>
-                        <path d="M182.946,106.873c-50.938,0-99.694,21.749-133.77,59.67c-6.807,7.576-6.185,19.236,1.392,26.044
-		c3.523,3.166,7.929,4.725,12.32,4.725c5.051-0.001,10.082-2.063,13.723-6.116c27.091-30.148,65.849-47.439,106.336-47.439
-		s79.246,17.291,106.338,47.438c6.808,7.576,18.468,8.198,26.043,1.391c7.576-6.808,8.198-18.468,1.391-26.043
-		C282.641,128.621,233.883,106.873,182.946,106.873z"/>
-                        <path d="M360.611,112.293c-47.209-48.092-110.305-74.577-177.665-74.577c-67.357,0-130.453,26.485-177.664,74.579
-		c-7.135,7.269-7.027,18.944,0.241,26.079c3.59,3.524,8.255,5.282,12.918,5.281c4.776,0,9.551-1.845,13.161-5.522
-		c40.22-40.971,93.968-63.534,151.344-63.534c57.379,0,111.127,22.563,151.343,63.532c7.136,7.269,18.812,7.376,26.08,0.242
-		C367.637,131.238,367.745,119.562,360.611,112.293z"/>
-                    </g>
-                </svg>
-            </td>
-        </tr>
-    </table>
-</div>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>xxxxx$</td>
+                    <td>xxxxx$</td>
+                    <td>xxxxx$</td>
+                    <td>xxxxx$</td>
+                    <td>xxxxx$</td>
+                    <td>
+                        <svg fill="#000000" height="50px" width="50px" version="1.1" id="Capa_1"
+                            xmlns="http://www.w3.org/2000/svg" class="connectionStatusIcon"
+                            viewBox="0 0 365.892 365.892" xml:space="preserve">
+                            <g>
+                                <circle cx="182.945" cy="286.681" r="41.494" />
+                                <path d="M182.946,176.029c-35.658,0-69.337,17.345-90.09,46.398c-5.921,8.288-4.001,19.806,4.286,25.726
+            c3.249,2.321,6.994,3.438,10.704,3.438c5.754,0,11.423-2.686,15.021-7.724c13.846-19.383,36.305-30.954,60.078-30.954
+            c23.775,0,46.233,11.571,60.077,30.953c5.919,8.286,17.437,10.209,25.726,4.288c8.288-5.92,10.208-17.438,4.288-25.726
+            C252.285,193.373,218.606,176.029,182.946,176.029z" />
+                                <path d="M182.946,106.873c-50.938,0-99.694,21.749-133.77,59.67c-6.807,7.576-6.185,19.236,1.392,26.044
+            c3.523,3.166,7.929,4.725,12.32,4.725c5.051-0.001,10.082-2.063,13.723-6.116c27.091-30.148,65.849-47.439,106.336-47.439
+            s79.246,17.291,106.338,47.438c6.808,7.576,18.468,8.198,26.043,1.391c7.576-6.808,8.198-18.468,1.391-26.043
+            C282.641,128.621,233.883,106.873,182.946,106.873z" />
+                                <path d="M360.611,112.293c-47.209-48.092-110.305-74.577-177.665-74.577c-67.357,0-130.453,26.485-177.664,74.579
+            c-7.135,7.269-7.027,18.944,0.241,26.079c3.59,3.524,8.255,5.282,12.918,5.281c4.776,0,9.551-1.845,13.161-5.522
+            c40.22-40.971,93.968-63.534,151.344-63.534c57.379,0,111.127,22.563,151.343,63.532c7.136,7.269,18.812,7.376,26.08,0.242
+            C367.637,131.238,367.745,119.562,360.611,112.293z" />
+                            </g>
+                        </svg>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </body>
 
 <style>
-    .tickerSelectBox {
-        position: absolute;
-        top: 0;
-        left: 0px;
-        padding: 10px;
-        box-sizing: border-box;
-        overflow-x: hidden;
-        overflow-y: hidden;
+    .mainView {
+        grid-area: content;
+        overflow: auto;
         height: 100%;
-        width: auto;
     }
+
     .statusBar {
-        position: absolute;
-        bottom: 0px;
-        left: 0px;
-        width: 100vw;
+        grid-area: footer;
         box-sizing: border-box;
         overflow-x: hidden;
         overflow-y: hidden;
     }
-    .connectionStatusIcon {
-      margin: auto;
+
+    .wrapper {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        grid-template-rows: auto 120px;
+        grid-template-areas:
+            "sidebar content"
+            "footer  footer";
+        min-height: 100vh;
     }
-    .borderShadow {
+
+    .tickers {
+        grid-area: sidebar;
+        text-align: center;
+
+    }
+
+    .border {
         border: 2px solid #8a8080;
-        box-shadow: 10px 10px 10px rgb(138, 127, 127);
     }
+
     body {
-        margin: 10px;
+        display: grid;
+        column-gap: 0;
+        height: 100%;
     }
+
     .center {
         text-align: center;
     }
+
     div {
         background-color: rgb(243, 239, 239);
     }
+
     button {
         font-size: 13.5px;
         height: 45px;
@@ -124,49 +150,67 @@
         border: 2px solid #ffffff00;
         cursor: pointer;
     }
+
     button:hover {
         background-color: #006ac1;
     }
 
     select {
-    width: auto;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    border: 2px solid #8a8080;
-    border-radius: 10px;
-    background-color: #FFFFFF;
-    cursor: pointer;
-}
+        width: auto;
+        padding: 12px 20px;
+        margin: 8px 0;
+        box-sizing: border-box;
+        border: 2px solid #8a8080;
+        border-radius: 10px;
+        background-color: #FFFFFF;
+        cursor: pointer;
+    }
 
     select:hover {
-    background-color: #EFEFEF;
-}
+        background-color: #EFEFEF;
+    }
 
     table,
-th,
-td {
-    border: solid 1px rgba(221, 221, 221, 0);
-    border-collapse: collapse;
-    padding: 2px 3px;
-    text-align: center;
-    font-family: sans-serif;
-}
+    th,
+    td {
+        border: solid 1px rgba(221, 221, 221, 0);
+        border-collapse: collapse;
+        padding: 2px 3px;
+        text-align: center;
+        font-family: sans-serif;
+    }
 
-table {
-    width: 100%;
-}
+    table {
+        width: 100%;
+    }
 
-tr {
-    height: 50px;
-    font-size: large;
-}
+    tr {
+        height: 50px;
+        font-size: large;
+    }
 
-th {
-    font-weight: bold;
-}
-    .tickerSelect {
-        background-color: grey;
+    th {
+        font-weight: bold;
+    }
+
+    .ticker {
+        font-size: 13.5px;
+        height: 45px;
+        width: 150px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-family: "Roboto", sans-serif;
+        font-weight: bold;
+        color: white;
+        background-color: #868286;
+        border-radius: 10px;
+        border: 2px solid #ffffff00;
         cursor: pointer;
+    }
+
+    .ticker:hover {
+        background-color: #535253;
     }
 </style>

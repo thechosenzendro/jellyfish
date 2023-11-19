@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 app = FastAPI()
 orm = ORM()
-session = orm
+session = orm.session
 
 from models import User, TradeNode, Config
 
@@ -36,6 +36,7 @@ class Result:
 
 
 # Broker API
+
 
 class Broker:
     name: str = "Broker"
@@ -65,7 +66,11 @@ async def index():
 async def login(request: Request):
     form_data = await request.form()
     username, password = form_data["username"], form_data["password"]
-    user = session.query(User).filter_by(username=username, password=sha512(password)).first()
+    user = (
+        session.query(User)
+        .filter_by(username=username, password=sha512(password))
+        .first()
+    )
 
     if user is not None:
         token = sha512(random.randint(0, 100000))
@@ -101,17 +106,14 @@ async def dashboard():
     trade_servers = session.query(TradeNode).all()
     currencies = requests.get("https://data.kurzy.cz/json/meny/b.json").json()["kurzy"]
     # TODO: Change this to a dict comprehension
-    print(currencies)
     config = session.query(Config).first()
     for currency, data in currencies.items():
         if config.currency == currency:
             data["selected"] = True
-    print(currencies)
-    broker = {
-        "name": Broker.name,
-        "working_hours": Broker.working_hours
-    }
-    page = template("dashboard.html").render(trade_servers=trade_servers, broker=broker, currencies=currencies)
+    broker = {"name": Broker.name, "working_hours": Broker.working_hours}
+    page = template("dashboard.html").render(
+        trade_servers=trade_servers, broker=broker, currencies=currencies
+    )
     return HTMLResponse(page)
 
 
@@ -142,13 +144,97 @@ async def change_currency(request: Request):
 
 def healthcheck():
     # TODO: Do some actual checking
-    return {
-        "trade_node_check": True,
-        "internet_check": True,
-        "broker_api_check": True
-    }
+    return {"trade_node_check": True, "internet_check": True, "broker_api_check": True}
 
 
 @app.get("/healthcheck")
 async def healthcheck_wrapper():
     return JSONResponse(healthcheck())
+
+
+@app.get("/view/{ticker}")
+async def view(ticker: str):
+    if ticker == "statistics":
+        statistics = {
+            "Denní": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Týdenní": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Měsíční": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Roční": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+        }
+        return HTMLResponse(template("statistics.html").render(statistics=statistics))
+    else:
+        statistics = {
+            "Denní": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Týdenní": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Měsíční": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Roční": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+            "Desetiletý": {
+                "number_of_trades": 27,
+                "expenditure": "1000 CZK",
+                "revenue": "10000 CZK",
+                "fee": "10 CZK",
+                "profit": "8990 CZK",
+                "profit_factor": 1,
+            },
+        }
+        statistics = template("statistics.html").render(statistics=statistics)
+        print(statistics)
+        return HTMLResponse(
+            template("ticker.html").render(ticker=ticker, statistics=statistics)
+        )

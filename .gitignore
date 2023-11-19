@@ -1,0 +1,5 @@
+/__pycache__
+/.idea
+/.vscode
+/jellyserve/__pycache__
+/dev.db
