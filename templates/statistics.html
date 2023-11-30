@@ -1,0 +1,30 @@
+<h1>Statistiky</h1>
+<div class="statWrapper">
+    {% for statistic, fields in statistics.items() %}
+    <div class="border stat">
+        <h2>{{statistic}}</h2>
+        <p>Počet obchodů: {{fields.number_of_trades}}</p>
+        <p>{{statistic}} výdej: {{fields.expenditure}}</p>
+        <p>{{statistic}} příjem: {{fields.revenue}}</p>
+        <p>{{statistic}} poplatek: {{fields.fee}}</p>
+        <p>{{statistic}} zisk: {{fields.profit}}</p>
+        <p>{{statistic}} ziskový faktor: {{fields.profit_factor}}</p>
+    </div>
+    {% endfor %}
+
+</div>
+
+<style>
+    .statWrapper {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        grid-template-rows: auto auto auto;
+        gap: 30px;
+    }
+
+    .stat {
+        text-align: center;
+        margin: auto;
+        width: 300px;
+    }
+</style>
