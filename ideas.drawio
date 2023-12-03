@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2023-11-04T21:44:54.102Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36" etag="x3P-kstybZ4h3FrFMIol" version="22.0.8" type="github">
+<mxfile host="app.diagrams.net" modified="2023-12-03T13:32:14.331Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36" etag="70NJZ2WP5FGtCe4rSRWM" version="22.1.5" type="github">
   <diagram name="Stránka-1" id="5V9dLEnHxDBhkWdFbIiP">
-    <mxGraphModel dx="3915" dy="3179" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3530" dy="2962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -276,11 +276,62 @@
         <mxCell id="Hr7-2fkySVnfuwUIb7m8-50" value="+ closed: datetime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="Hr7-2fkySVnfuwUIb7m8-47" vertex="1">
           <mxGeometry y="208" width="170" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="jfS8t5CzbtmpjxmcKulx-2" value="Config" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="jfS8t5CzbtmpjxmcKulx-2" value="Config" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="-550" y="-830" width="140" height="52" as="geometry" />
         </mxCell>
-        <mxCell id="jfS8t5CzbtmpjxmcKulx-3" value="+ currency: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="jfS8t5CzbtmpjxmcKulx-2">
+        <mxCell id="jfS8t5CzbtmpjxmcKulx-3" value="+ currency: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="jfS8t5CzbtmpjxmcKulx-2" vertex="1">
           <mxGeometry y="26" width="140" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-1" value="Trade control flow" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1800" y="-1840" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-2" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;Stav&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1950" y="-1730" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-3" value="Nakoupeno" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1950" y="-1650" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-4" value="Default" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1950" y="-1570" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-5" value="Short" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1950" y="-1490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-9" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;Analýza&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1800" y="-1730" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-10" value="Jde nahoru" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1800" y="-1650" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-11" value="Jde dolů" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1800" y="-1570" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-13" value="Nevyhovuje" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1800" y="-1490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-14" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;Akce&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1654" y="-1730" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-15" value="BUY" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1654" y="-1650" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-16" value="SELL" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1654" y="-1570" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-17" value="Nic" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1654" y="-1490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-18" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;Analýza&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1510" y="-1730" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-19" value="Jde nahoru" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1510" y="-1650" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-20" value="Jde dolů" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1510" y="-1570" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n0Vp1T1qVjlmAqaO3Zv0-21" value="Nevyhovuje" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-1510" y="-1490" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
