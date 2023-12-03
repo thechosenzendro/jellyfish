@@ -1,7 +1,9 @@
+from ast import Pass
 from fastapi import FastAPI
 from typing import Any
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import APIRouter
 from jellyserve.utils import template, sha512
 from jellyserve.orm import ORM
 from jellyserve.auth import AuthenticatedRequest
@@ -9,9 +11,12 @@ from inspect import signature
 import random
 import requests
 from dataclasses import dataclass
-
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 orm = ORM()
 session = orm.session
 
@@ -58,6 +63,8 @@ class Broker:
 
 
 # Routes
+
+
 @app.get("/")
 async def index():
     return HTMLResponse(template("login.html"))
@@ -98,6 +105,9 @@ async def is_logged_in(request: Request, call_next):
     matched_route = get_matching_route(request)
     if not matched_route:
         return HTMLResponse(status_code=404, content="Not found.")
+    if not hasattr(matched_route, "endpoint"):
+        response = await call_next(request)
+        return response
 
     route_handler = matched_route.endpoint
     if hasattr(route_handler, "__wrapped__"):
@@ -256,3 +266,17 @@ async def view(ticker: str, request: AuthenticatedRequest):
         return HTMLResponse(
             template("ticker.html", ticker=ticker, statistics=statistics)
         )
+
+
+sync_router = APIRouter(prefix="/sync")
+
+
+@sync_router.get("/graph/{test}")
+async def update_graph(test: str):
+    if test == "next":
+        pass
+    else:
+        pass
+
+
+app.include_router(sync_router)

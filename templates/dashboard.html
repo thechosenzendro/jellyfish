@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="static/dashboard.js" defer></script>
     <title>Dashboard</title>
 </head>
 
@@ -86,6 +87,10 @@
 </body>
 
 <style>
+    * {
+        font-family: "Roboto", sans-serif;
+    }
+
     .mainView {
         grid-area: content;
         overflow: auto;
@@ -142,7 +147,6 @@
         font-size: 13.5px;
         height: 45px;
         width: 100px;
-        font-family: "Roboto", sans-serif;
         font-weight: bold;
         color: white;
         background-color: #4285F4;

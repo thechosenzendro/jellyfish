@@ -1,9 +1,8 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script src="static/graph.js"></script>
+
 <h1>{{ticker}}</h1>
-<div id="graph" class="border">Graf</div>
+<price-graph></price-graph>
 <div>{{statistics|safe}}</div>
-<style>
-    #graph {
-        margin: 10px;
-        height: 300px;
-    }
-</style>
+</div>
