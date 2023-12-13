@@ -10,6 +10,7 @@ from jellyserve.auth import AuthenticatedRequest
 from inspect import signature
 import random
 import requests
+import yfinance
 from dataclasses import dataclass
 from fastapi.staticfiles import StaticFiles
 
@@ -271,12 +272,28 @@ async def view(ticker: str, request: AuthenticatedRequest):
 sync_router = APIRouter(prefix="/sync")
 
 
-@sync_router.get("/graph/{test}")
-async def update_graph(test: str):
-    if test == "next":
-        pass
-    else:
-        pass
+@sync_router.get("/graph/{ticker}/{sync_time}")
+async def update_graph(ticker: str, sync_time: str):
+    states = ["analyzing", "bought", "shorting", "noop"]
+    graph_data = []
+
+    stock_data = yfinance.Ticker(ticker).history(period=sync_time)
+
+    timestamps = stock_data.index
+    prices = stock_data["Close"]
+
+    print(timestamps, prices)
+
+    for timestamp, price in zip(timestamps, prices):
+        state = states[random.randint(0, len(states) - 1)]
+        graph_data.append(
+            {
+                "timestamp": str(timestamp),
+                "price": price,
+                "state": state,
+            }
+        )
+    return JSONResponse(graph_data)
 
 
 app.include_router(sync_router)

@@ -31,7 +31,7 @@ class Graph extends HTMLElement {
                 }
             </style>
         `
-        const data = await (await fetch("/sync/graph/1h")).json()
+        const data = await (await fetch(`/sync/graph/${this.getAttribute("ticker")}/1y`)).json()
         const chart = new Chart("priceGraph", {
             type: "line",
             data: {
