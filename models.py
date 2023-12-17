@@ -2,6 +2,7 @@ from main import orm
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped
 
 
 class User(orm.Base):
@@ -10,7 +11,7 @@ class User(orm.Base):
     username = Column(String, unique=True)
     password = Column(String)
     session = Column(String, unique=True)
-    config = relationship("Config", backref="user")
+    config = relationship("Config", backref="user", uselist=False)
 
     def __init__(self, username: str, password: str):
         self.username = username

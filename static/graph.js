@@ -5,7 +5,8 @@ function setColor(ctx, data) {
         shorting: "rgb(255, 0, 0)",
         noop: "rgb(0,0,0,0.2)"
     }
-    return states[data[ctx.p0DataIndex]["state"]]
+
+    return states[data[ctx.p0DataIndex].state]
 }
 /*
 data {
@@ -31,8 +32,15 @@ class Graph extends HTMLElement {
                 }
             </style>
         `
-        const data = await (await fetch(`/sync/graph/${this.getAttribute("ticker")}/1y`)).json()
-        const chart = new Chart("priceGraph", {
+        let chart;
+        console.log("Syncing graph!")
+        const data = JSON.parse(await syncSocket.get({
+            action: "graph_sync",
+            ticker: this.getAttribute("ticker"),
+            sync_time: "7d"
+        }))
+        console.log(data)
+        chart = new Chart("priceGraph", {
             type: "line",
             data: {
                 labels: data.map(datapoint => datapoint.timestamp),
@@ -44,14 +52,32 @@ class Graph extends HTMLElement {
                     }
                 }]
             },
-            options: {}
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'x',
+                        }
+                    }
+                }
+            }
         })
 
-        document.addEventListener("update", async () => {
-            const next = await (await fetch("/sync/graph/next")).json()
+
+        syncSocket.on("update_graph", async (updateData) => {
+            data.push(updateData)
             const dataset = chart.data.datasets[0]
-            dataset.data.push(next.price)
-            chart.data.labels.push(next.timestamp)
+            dataset.data = data.map(datapoint => datapoint.price)
+            chart.data.labels = data.map(datapoint => datapoint.timestamp)
+
             chart.update()
 
         })
