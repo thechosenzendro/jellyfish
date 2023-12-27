@@ -1,8 +1,7 @@
-from main import orm
+from db import orm
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
-from sqlalchemy.orm import Mapped
 
 
 class User(orm.Base):
@@ -57,6 +56,3 @@ class Config(orm.Base):
 
     def __init__(self, currency: str):
         self.currency = currency
-
-
-orm.migrate()

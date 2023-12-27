@@ -1,0 +1,23 @@
+Metadata-Version: 2.1
+Name: result
+Version: 0.16.0
+Summary: A Rust-like result type for Python
+Home-page: https://github.com/rustedpy/result
+Author: Danilo Bargen
+Author-email: mail@dbrgn.ch
+Maintainer: rustedpy github org members (https://github.com/rustedpy)
+License: MIT
+Keywords: rust,result,enum
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: typing-extensions ; python_version < "3.10"
+

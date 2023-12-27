@@ -1,41 +1,26 @@
-from pprint import pprint
-from fastapi import FastAPI, WebSocket
-from fastapi import Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from jellyserve.utils import template, sha512
-from jellyserve.orm import ORM
-from result import Ok, Err, Result, is_ok, is_err
 import random
-import requests
+import requests_cache
 import yfinance
 import asyncio
 import pandas as pd
-from datetime import datetime
+
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocket
+from fastapi import Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+
+from db import session
+from models import User, TradeNode, Config
+from jellyserve.utils import template, sha512
+
+from result import Ok, Err, Result, is_ok, is_err
+from datetime import datetime
+from pprint import pprint
 
 STATES = ["analyzing", "bought", "shorting", "noop"]
 
 app = FastAPI()
-orm = ORM()
-session = orm.session
-
-from models import User, TradeNode, Config
-
-
-# Create default admin
-if session.query(User).filter_by(username="admin").first() is None:
-    admin = User(username="admin", password=sha512("admin"))
-    admin.config = Config(currency="USD")
-    session.add(admin)
-
-    session.commit()
-
-# Create test TradeServer
-if session.query(TradeNode).filter_by(ticker="AAPL").first() is None:
-    session.add(TradeNode(ticker="AAPL", active=True))
-    session.commit()
-
-# TODO: Make the config dependent on the user
+req_session = requests_cache.CachedSession("db/cache")
 
 
 # Broker API
@@ -91,12 +76,18 @@ async def login(request: Request):
     )
 
     if user is not None:
-        token = sha512(random.randint(0, 100000))
+        token = sha512(
+            str(random.randint(0, 100000))
+            + user.username
+            + str(random.randint(0, 100000))
+        )
+
         user.session = token
         session.commit()
 
         response = RedirectResponse(status_code=302, url="/dashboard")
-        response.set_cookie(key="session", value=token, httponly=False, secure=False)
+        response.set_cookie(key="session", value=token, httponly=True)
+
         return response
     else:
         return RedirectResponse(status_code=302, url="/")
@@ -108,13 +99,14 @@ async def dashboard(request: Request):
     user_result = get_user(request)
     if is_err(user_result):
         return user_result.err_value
-    user = user_result.ok_value
+    user: User = user_result.ok_value
 
     trade_servers = session.query(TradeNode).all()
-    currencies = requests.get("https://data.kurzy.cz/json/meny/b.json").json()["kurzy"]
-    config = session.query(Config).first()
+    currencies = req_session.get("https://data.kurzy.cz/json/meny/b.json").json()[
+        "kurzy"
+    ]
 
-    currencies[config.currency]["selected"] = True
+    currencies[user.config.currency]["selected"] = True
     broker = {"name": Broker.name, "working_hours": Broker.working_hours}
 
     page = template(
@@ -262,7 +254,7 @@ async def view(ticker: str, request: Request):
 
 class SyncConnectionManager:
     def __init__(self) -> None:
-        self.active_connections: dict[User, WebSocket] = {}
+        self.active_connections: dict[User, WebSocket | None] = {}
 
     def add_connection(self, user: User, websocket: WebSocket):
         self.active_connections[user] = websocket
@@ -321,12 +313,15 @@ async def sync(websocket: WebSocket):
 async def ping():
     while True:
         try:
+            tickers = ["AAPL", "MSFT"]
+            ticker = tickers[random.randint(0, 1)]
             state = STATES[random.randint(0, len(STATES) - 1)]
             now = datetime.now()
 
             await sync_socket.broadcast_json(
                 {
                     "action": "update_graph",
+                    "ticker": ticker,
                     "timestamp": now.strftime("%H:%M:%S"),
                     "price": random.randint(0, 200),
                     "state": state,
