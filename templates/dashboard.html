@@ -7,19 +7,34 @@
     <title>Dashboard</title>
 </head>
 
+<dialog id="network">
+    <h1>Testy připojení</h1>
+    <span class="pointer" onclick="document.getElementById('network').close()">&times;</span>
+
+    <p>Test připojení k serveru: </p><p id="server_check">OK</p>
+    <p>Test připojení k API Brokera: </p><p id="broker_api_check">OK</p>
+    <p>Test připojení k obchodním uzlům: </p><p id="trade_node_check">OK</p>
+</dialog>
+
 <body>
     <div class="wrapper">
         <div class="tickers border">
             <h1>Dashboard</h1>
-            <div class="ticker" hx-get="/view/statistics" hx-swap="innerHTML" hx-target="#mainView">
+            <div class="secondary btn" hx-get="/view/statistics" hx-swap="innerHTML" hx-target="#mainView">
                 <p class="center">Statistiky</p>
             </div>
+
             {% for trade_server in trade_servers %}
-            <div class="ticker" hx-get="/view/{{trade_server.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
+            <div class="secondary btn" hx-get="/view/{{trade_server.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
                 <p class="center">{{ trade_server.ticker }}</p>
             </div>
-
             {% endfor %}
+
+            <!-- Do it then improve it -->
+
+            <div class="alert btn center" onclick="toggleGeneral(this)">
+                <p class="center">STOP</p>
+            </div>
 
             <form action="/logout" method="post" class="center">
                 <button type="submit" class="center">Odhlásit se</button>
@@ -60,8 +75,9 @@
                     <td>xxxxx$</td>
                     <td>xxxxx$</td>
                     <td>
-                        <svg fill="#000000" height="50px" width="50px" version="1.1" id="healthcheck_icon"
-                            xmlns="http://www.w3.org/2000/svg" class="connectionStatusIcon"
+                        <div class="tooltip">
+                            <svg fill="#000000" height="50px" width="50px" version="1.1" id="healthcheck_icon" onclick="document.getElementById('network').showModal()"
+                            xmlns="http://www.w3.org/2000/svg" class="connectionStatusIcon pointer"
                             viewBox="0 0 365.892 365.892" xml:space="preserve">
                             <g>
                                 <circle cx="182.945" cy="286.681" r="41.494" />
@@ -79,6 +95,9 @@
             C367.637,131.238,367.745,119.562,360.611,112.293z" />
                             </g>
                         </svg>
+                            <span class="tooltiptext">Tooltip text</span>
+                        </div>
+
                     </td>
                 </tr>
             </table>
@@ -142,6 +161,36 @@
         text-align: center;
     }
 
+    .tooltip {
+        display: inline-block;
+        border-bottom: 1px dotted black;
+    }
+
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        height: 300px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        
+        /* Position the tooltip */
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        margin-left: -60px;
+    }
+
+    .tooltiptext {
+        z-index: 2;
+    }
+
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }
+
     div {
         background-color: rgb(243, 239, 239);
     }
@@ -200,7 +249,7 @@
         font-weight: bold;
     }
 
-    .ticker {
+    .btn {
         font-size: 13.5px;
         height: 45px;
         width: 150px;
@@ -211,13 +260,53 @@
         font-family: "Roboto", sans-serif;
         font-weight: bold;
         color: white;
-        background-color: #868286;
         border-radius: 10px;
         border: 2px solid #ffffff00;
         cursor: pointer;
+
     }
 
-    .ticker:hover {
+    .pointer {
+        cursor: pointer;
+    }
+
+    .secondary {
+        background-color: #868286;
+    }
+
+    .secondary:hover {
         background-color: #535253;
+    }
+
+    .alert {
+        background-color: #ff0000;
+    }
+
+    .alert:hover {
+        background-color: #d51515;
+    }
+
+    .alert_text {
+        color: #ff0000;
+    }
+
+    .alert_text:hover {
+        color: #d51515;
+    }
+
+    .green {
+        background-color: #0dff00;
+    }
+
+    .green:hover {
+        background-color: #46ca41;
+    }
+    
+    .green_text {
+        color: #0dff00;
+    }
+
+    .green_text:hover {
+        color: #46ca41;
     }
 </style>

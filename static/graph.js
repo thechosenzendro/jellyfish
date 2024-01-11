@@ -20,6 +20,7 @@ class Graph extends HTMLElement {
     constructor() {
         super()
         this.ticker = this.getAttribute("ticker")
+        this.graph = null
     }
     async connectedCallback() {
         this.innerHTML = `
@@ -33,7 +34,6 @@ class Graph extends HTMLElement {
                 }
             </style>
         `
-        let chart;
         console.log("Syncing graph!")
         const data = JSON.parse(await syncSocket.get({
             action: "graph_sync",
@@ -41,7 +41,7 @@ class Graph extends HTMLElement {
             sync_time: "7d"
         }))
         console.log(data)
-        chart = new Chart("priceGraph", {
+        this.chart = new Chart("priceGraph", {
             type: "line",
             data: {
                 labels: data.map(datapoint => datapoint.timestamp),
@@ -77,11 +77,11 @@ class Graph extends HTMLElement {
             if (updateData.ticker == this.ticker) {
                 console.log("It matches with " + this.ticker)
                 data.push(updateData)
-                const dataset = chart.data.datasets[0]
+                const dataset = this.chart.data.datasets[0]
                 dataset.data = data.map(datapoint => datapoint.price)
-                chart.data.labels = data.map(datapoint => datapoint.timestamp)
+                this.chart.data.labels = data.map(datapoint => datapoint.timestamp)
 
-                chart.update()
+                this.chart.update()
 
             }
 

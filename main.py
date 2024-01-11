@@ -86,7 +86,7 @@ async def login(request: Request):
         session.commit()
 
         response = RedirectResponse(status_code=302, url="/dashboard")
-        response.set_cookie(key="session", value=token, httponly=True)
+        response.set_cookie(key="session", value=token, httponly=False)
 
         return response
     else:
@@ -146,8 +146,14 @@ async def change_currency(request: Request):
     return RedirectResponse(status_code=302, url="/dashboard")
 
 
-def healthcheck() -> dict:
+async def healthcheck() -> dict:
     # TODO: Do some actual checking
+    randint = random.randint(0, 10)
+    print(randint)
+    if randint == 6:
+        return {"trade_node_check": False, "broker_api_check": True}
+    if randint == 4:
+        return {"trade_node_check": True, "broker_api_check": False}
     return {"trade_node_check": True, "broker_api_check": True}
 
 
@@ -158,7 +164,7 @@ async def healthcheck_wrapper(request: Request):
         return user_result.err_value
     user: User = user_result.ok_value
 
-    return JSONResponse(healthcheck())
+    return JSONResponse(await healthcheck())
 
 
 @app.get("/view/{ticker}")
@@ -273,39 +279,52 @@ class SyncConnectionManager:
 sync_socket = SyncConnectionManager()
 
 
+class SyncHandler:
+    @staticmethod
+    def graph_sync(user: User, req: dict) -> list[dict]:
+        stock_data = yfinance.Ticker(req["ticker"]).history(period=req["sync_time"])
+
+        timestamps = pd.to_datetime(stock_data.index)
+        prices = stock_data["Close"]
+
+        response = [
+            {
+                "timestamp": timestamp.strftime("%H:%M:%S"),
+                "price": price,
+                "state": STATES[random.randint(0, len(STATES) - 1)],
+            }
+            for timestamp, price in zip(timestamps, prices)
+        ]
+        return response
+
+    def stop_trading(user: User, req: dict) -> list[dict]:
+        return {"result": "ok"}
+
+    def start_trading(user: User, req: dict) -> list[dict]:
+        return {"result": "ok"}
+
+
 @app.websocket("/sync")
 async def sync(websocket: WebSocket):
-    await websocket.accept()
-
     user_result = get_user(websocket)
-    if is_err(user_result):
-        return user_result.err_value
+
+    if is_ok(user_result):
+        await websocket.accept()
+    else:
+        return 1
     user: User = user_result.ok_value
 
     sync_socket.add_connection(user, websocket)
     try:
         while True:
             request: dict = await websocket.receive_json()
-            response = {}
-
-            if request["action"] == "graph_sync":
-                stock_data = yfinance.Ticker(request["ticker"]).history(
-                    period=request["sync_time"]
+            action = request.get("action", "no_action")
+            if hasattr(SyncHandler, action):
+                await websocket.send_json(
+                    getattr(SyncHandler, request["action"])(user, request)
                 )
-
-                timestamps = pd.to_datetime(stock_data.index)
-                prices = stock_data["Close"]
-
-                response = [
-                    {
-                        "timestamp": timestamp.strftime("%H:%M:%S"),
-                        "price": price,
-                        "state": STATES[random.randint(0, len(STATES) - 1)],
-                    }
-                    for timestamp, price in zip(timestamps, prices)
-                ]
-
-            await websocket.send_json(response)
+            else:
+                await websocket.send_json({"error": "No such action"})
     except:
         sync_socket.remove_connection(user)
 
@@ -327,7 +346,7 @@ async def ping():
                     "state": state,
                 }
             )
-
+            print("Sending new graph data!")
         except:
             pass
         await asyncio.sleep(1)
