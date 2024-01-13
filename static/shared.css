@@ -1,0 +1,147 @@
+* {
+    font-family: "Roboto", sans-serif;
+}
+
+h1 {
+    margin: 10px;
+}
+
+.border {
+    border: 2px solid #8a8080;
+}
+
+div {
+    background-color: rgb(243, 239, 239);
+}
+
+button {
+    font-size: 13.5px;
+    height: 45px;
+    width: 100px;
+    font-weight: bold;
+    color: white;
+    background-color: #4285F4;
+    border-radius: 10px;
+    border: 2px solid #ffffff00;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #006ac1;
+}
+
+select {
+    width: auto;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid #8a8080;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    cursor: pointer;
+}
+
+select:hover {
+    background-color: #EFEFEF;
+}
+
+table,
+th,
+td {
+    border: solid 1px rgba(221, 221, 221, 0);
+    border-collapse: collapse;
+    padding: 2px 3px;
+    text-align: center;
+    font-family: sans-serif;
+}
+
+table {
+    width: 100%;
+}
+
+tr {
+    height: 50px;
+    font-size: large;
+}
+
+th {
+    font-weight: bold;
+}
+
+.btn {
+    font-size: 13.5px;
+    height: 45px;
+    width: 150px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-family: "Roboto", sans-serif;
+    font-weight: bold;
+    color: white;
+    border-radius: 10px;
+    border: 2px solid #ffffff00;
+    cursor: pointer;
+
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.secondary {
+    background-color: #868286;
+}
+
+.secondary:hover {
+    background-color: #535253;
+}
+
+.alert {
+    background-color: #ff0000;
+}
+
+.alert:hover {
+    background-color: #891f1f;
+}
+
+.alert_text {
+    color: #ff0000;
+}
+
+.alert_text:hover {
+    color: #d51515;
+}
+
+.green {
+    background-color: #0dff00;
+}
+
+.green:hover {
+    background-color: #1ca318;
+}
+
+.green_text {
+    color: #0dff00;
+}
+
+.green_text:hover {
+    color: #46ca41;
+}
+
+.bold_text {
+    font-weight: bolder;
+}
+
+input {
+    text-align: center;
+    font-size: 13.5px;
+    width: clamp(200px, 450px, 600px);
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid #8a8080;
+    border-radius: 10px;
+    font-family: 'Roboto', sans-serif;
+    display: table-cell;
+}

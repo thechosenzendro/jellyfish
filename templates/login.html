@@ -1,25 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="static/shared.css">
     <title>Přihlášení</title>
 </head>
+
 <body>
     <h1>Přihlášení</h1>
     <form action="/login" method="post">
         <fieldset>
-            <label for="username">Uživatelské jméno:</label>
-            <input type="text" name="username" id="username" placeholder="Jan Novák">
-
-            <br>
-            
-            <label for="password">Heslo:</label>
-            <input type="password" name="password" id="password" placeholder="Jannovak123">
+            <h1>Jellyfish</h1>
+            <h2>Uživatelské jméno</h2>
+            <input type="text" name="username" placeholder="Jan Novák">
 
             <br>
 
-            <input type="submit" value="Přihlásit se">
+            <h2>Heslo</h2>
+            <input type="password" name="password" placeholder="Jannovak123">
+
+            <br>
+            <button type="submit" class="btn">Přihlásit se</button>
         </fieldset>
     </form>
 </body>
+<style>
+    fieldset {
+        height: 30%;
+        width: 40%;
+        margin: auto;
+        background-color: rgb(243, 239, 239);
+        text-align: center;
+        border: 2px solid #8a8080;
+        padding: 10px;
+        box-shadow: 10px 10px 10px rgb(138, 127, 127);
+        border-radius: 10px;
+    }
+</style>
+
 </html>

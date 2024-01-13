@@ -1,14 +1,37 @@
+{% if ticker == "global" %}
+<h1>Globální statistiky</h1>
+{% else %}
 <h1>Statistiky</h1>
+{% endif %}
 <div class="statWrapper">
-    {% for statistic, fields in statistics.items() %}
+    {% for statistic in statistics %}
     <div class="border stat">
-        <h2>{{statistic}}</h2>
-        <p>Počet obchodů: {{fields.number_of_trades}}</p>
-        <p>{{statistic}} výdej: {{fields.expenditure}}</p>
-        <p>{{statistic}} příjem: {{fields.revenue}}</p>
-        <p>{{statistic}} poplatek: {{fields.fee}}</p>
-        <p>{{statistic}} zisk: {{fields.profit}}</p>
-        <p>{{statistic}} ziskový faktor: {{fields.profit_factor}}</p>
+        <h2>{{statistic.name}}</h2>
+        <p>
+            Počet obchodů: <span id="{{ticker}}_{{statistic.id}}_number_of_trades">{{statistic.number_of_trades}}</span>
+        </p>
+
+        <p>{{statistic.name}} výdej:
+            <span id="{{ticker}}_{{statistic.id}}_expenditure">{{statistic.expenditure}}</span>
+        </p>
+
+        <p>{{statistic.name}} příjem:
+            <span id="{{ticker}}_{{statistic.id}}_revenue">{{statistic.revenue}}</span>
+        </p>
+
+
+        <p>{{statistic.name}} poplatek:
+            <span id="{{ticker}}_{{statistic.id}}_fee">{{statistic.fee}}</span>
+        </p>
+
+        <p>{{statistic.name}} zisk:
+            <span id="{{ticker}}_{{statistic.id}}_profit">{{statistic.profit}}</span>
+        </p>
+
+        <p>{{statistic.name}} ziskový faktor:
+            <span id="{{ticker}}_{{statistic.id}}_profit_factor">{{statistic.profit_factor}}</span>
+        </p>
+
     </div>
     {% endfor %}
 

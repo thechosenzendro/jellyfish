@@ -76,9 +76,8 @@ class Graph extends HTMLElement {
             if (updateData.ticker == this.ticker) {
                 data.push(updateData)
                 const dataset = this.chart.data.datasets[0]
-                dataset.data = data.map(datapoint => datapoint.price)
-                this.chart.data.labels = data.map(datapoint => datapoint.timestamp)
-
+                dataset.data.push(updateData.price)
+                this.chart.data.labels.push(updateData.timestamp)
                 this.chart.update()
 
             }

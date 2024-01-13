@@ -107,13 +107,25 @@ async def dashboard(request: Request):
     ]
 
     currencies[user.config.currency]["selected"] = True
-    broker = {"name": Broker.name, "working_hours": Broker.working_hours}
+    broker = {
+        "name": Broker.name,
+        "working_hours": Broker.working_hours,
+    }
+
+    status_bar = {
+        "balance": "xxxxxx$",
+        "equity": "xxxxxx$",
+        "margin": "xxxxxx$",
+        "free_margin": "xxxxxx$",
+        "level": "xxxxxx$",
+    }
 
     page = template(
         "dashboard.html",
         trade_servers=trade_servers,
         broker=broker,
         currencies=currencies,
+        **status_bar
     )
     return HTMLResponse(page)
 
@@ -172,87 +184,55 @@ async def view(ticker: str, request: Request):
     user_result = get_user(request)
     if is_err(user_result):
         return user_result.err_value
+    statistics = [
+        {
+            "name": "Denní",
+            "id": "daily",
+            "number_of_trades": 27,
+            "expenditure": "1000 CZK",
+            "revenue": "10000 CZK",
+            "fee": "10 CZK",
+            "profit": "8990 CZK",
+            "profit_factor": 1,
+        },
+        {
+            "name": "Týdenní",
+            "id": "weekly",
+            "number_of_trades": 27,
+            "expenditure": "1000 CZK",
+            "revenue": "10000 CZK",
+            "fee": "10 CZK",
+            "profit": "8990 CZK",
+            "profit_factor": 1,
+        },
+        {
+            "name": "Měsíční",
+            "id": "monthly",
+            "number_of_trades": 27,
+            "expenditure": "1000 CZK",
+            "revenue": "10000 CZK",
+            "fee": "10 CZK",
+            "profit": "8990 CZK",
+            "profit_factor": 1,
+        },
+        {
+            "name": "Roční",
+            "id": "yearly",
+            "number_of_trades": 27,
+            "expenditure": "1000 CZK",
+            "revenue": "10000 CZK",
+            "fee": "10 CZK",
+            "profit": "8990 CZK",
+            "profit_factor": 1,
+        },
+    ]
 
     if ticker == "statistics":
-        statistics = {
-            "Denní": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Týdenní": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Měsíční": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Roční": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-        }
-        return HTMLResponse(template("statistics.html", statistics=statistics))
+        return HTMLResponse(
+            template("statistics.html", statistics=statistics, ticker="global")
+        )
     else:
-        statistics = {
-            "Denní": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Týdenní": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Měsíční": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Roční": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-            "Desetiletý": {
-                "number_of_trades": 27,
-                "expenditure": "1000 CZK",
-                "revenue": "10000 CZK",
-                "fee": "10 CZK",
-                "profit": "8990 CZK",
-                "profit_factor": 1,
-            },
-        }
-        statistics = template("statistics.html", statistics=statistics)
+        statistics = template("statistics.html", statistics=statistics, ticker=ticker)
         return HTMLResponse(
             template("ticker.html", ticker=ticker, statistics=statistics)
         )
@@ -332,12 +312,28 @@ async def sync(websocket: WebSocket):
         sync_socket.remove_connection(user)
 
 
-async def ping():
+async def sync_test():
+    def get_random(_list: list):
+        return _list[random.randint(0, len(_list) - 1)]
+
+    tickers = [
+        trade_node.ticker
+        for trade_node in session.query(TradeNode).all()
+        if trade_node.active
+    ]
+    tickers.append("global")
+    status_bar_keys = [
+        "balance",
+        "equity",
+        "margin",
+        "free_margin",
+        "level",
+    ]
     while True:
         try:
-            tickers = ["AAPL", "MSFT"]
-            ticker = tickers[random.randint(0, 1)]
-            state = STATES[random.randint(0, len(STATES) - 1)]
+            # Sending new ticker data
+            ticker = get_random(tickers)
+            state = get_random(STATES)
             now = datetime.now()
 
             await sync_socket.broadcast_json(
@@ -350,9 +346,40 @@ async def ping():
                 }
             )
             print("Sending new graph data!")
+            # Sending new status bar data
+            await sync_socket.broadcast_json(
+                {
+                    "action": "update_status_bar",
+                    "key": get_random(status_bar_keys),
+                    "value": str(random.randint(0, 1000)) + "$",
+                }
+            )
+            print("Sending new status bar data!")
+
+            ids = ["daily", "weekly", "monthly", "yearly"]
+            keys = [
+                "number_of_trades",
+                "expenditure",
+                "revenue",
+                "fee",
+                "profit",
+                "profit_factor",
+            ]
+
+            # Sending new statistic data
+            await sync_socket.broadcast_json(
+                {
+                    "action": "update_statistics",
+                    "ticker": get_random(tickers),
+                    "stat_id": get_random(ids),
+                    "key": get_random(keys),
+                    "value": random.randint(0, 1000),
+                }
+            )
+            print("Sending new statistics!")
         except:
             pass
         await asyncio.sleep(1)
 
 
-asyncio.ensure_future(ping())
+asyncio.ensure_future(sync_test())

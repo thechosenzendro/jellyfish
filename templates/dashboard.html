@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script src="static/dashboard.js" defer></script>
+    <link rel="stylesheet" href="static/shared.css">
     <title>Dashboard</title>
 </head>
 
@@ -11,9 +12,12 @@
     <h1>Testy připojení</h1>
     <span class="pointer" onclick="document.getElementById('network').close()">&times;</span>
 
-    <p>Test připojení k serveru: </p><p id="server_check">OK</p>
-    <p>Test připojení k API Brokera: </p><p id="broker_api_check">OK</p>
-    <p>Test připojení k obchodním uzlům: </p><p id="trade_node_check">OK</p>
+    <p>Test připojení k serveru: </p>
+    <p id="server_check">NODATA</p>
+    <p>Test připojení k API Brokera: </p>
+    <p id="broker_api_check">NODATA</p>
+    <p>Test připojení k obchodním uzlům: </p>
+    <p id="trade_node_check">NODATA</p>
 </dialog>
 
 <body>
@@ -40,7 +44,9 @@
                 <button type="submit" class="center">Odhlásit se</button>
             </form>
         </div>
-        <div id="mainView" class="mainView border"></div>
+        <div id="mainView" class="mainView border">
+            <h1>Vyberte ticker.</h1>
+        </div>
         <div id="statusBar" class="statusBar border">
             <table>
                 <tr>
@@ -69,16 +75,15 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td>xxxxx$</td>
-                    <td>xxxxx$</td>
-                    <td>xxxxx$</td>
-                    <td>xxxxx$</td>
-                    <td>xxxxx$</td>
+                    <td id="balance">{{ balance }}</td>
+                    <td id="equity">{{ equity }}</td>
+                    <td id="margin">{{ margin }}</td>
+                    <td id="free_margin">{{ free_margin }}</td>
+                    <td id="level">{{ level }}</td>
                     <td>
-                        <div class="tooltip">
-                            <svg fill="#000000" height="50px" width="50px" version="1.1" id="healthcheck_icon" onclick="document.getElementById('network').showModal()"
-                            xmlns="http://www.w3.org/2000/svg" class="connectionStatusIcon pointer"
-                            viewBox="0 0 365.892 365.892" xml:space="preserve">
+                        <svg fill="#000000" height="50px" width="50px" version="1.1" id="healthcheck_icon"
+                            onclick="document.getElementById('network').showModal()" xmlns="http://www.w3.org/2000/svg"
+                            class="connectionStatusIcon pointer" viewBox="0 0 365.892 365.892" xml:space="preserve">
                             <g>
                                 <circle cx="182.945" cy="286.681" r="41.494" />
                                 <path d="M182.946,176.029c-35.658,0-69.337,17.345-90.09,46.398c-5.921,8.288-4.001,19.806,4.286,25.726
@@ -95,9 +100,6 @@
             C367.637,131.238,367.745,119.562,360.611,112.293z" />
                             </g>
                         </svg>
-                            <span class="tooltiptext">Tooltip text</span>
-                        </div>
-
                     </td>
                 </tr>
             </table>
@@ -106,14 +108,6 @@
 </body>
 
 <style>
-    * {
-        font-family: "Roboto", sans-serif;
-    }
-
-    h1 {
-        margin: 10px;
-    }
-
     .mainView {
         grid-area: content;
         overflow: auto;
@@ -147,166 +141,9 @@
         text-align: center;
     }
 
-    .border {
-        border: 2px solid #8a8080;
-    }
-
     body {
         display: grid;
         column-gap: 0;
         height: 100%;
-    }
-
-    .center {
-        text-align: center;
-    }
-
-    .tooltip {
-        display: inline-block;
-        border-bottom: 1px dotted black;
-    }
-
-    .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 120px;
-        height: 300px;
-        background-color: black;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 5px 0;
-        
-        /* Position the tooltip */
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        margin-left: -60px;
-    }
-
-    .tooltiptext {
-        z-index: 2;
-    }
-
-    .tooltip:hover .tooltiptext {
-        visibility: visible;
-    }
-
-    div {
-        background-color: rgb(243, 239, 239);
-    }
-
-    button {
-        font-size: 13.5px;
-        height: 45px;
-        width: 100px;
-        font-weight: bold;
-        color: white;
-        background-color: #4285F4;
-        border-radius: 10px;
-        border: 2px solid #ffffff00;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background-color: #006ac1;
-    }
-
-    select {
-        width: auto;
-        padding: 12px 20px;
-        margin: 8px 0;
-        box-sizing: border-box;
-        border: 2px solid #8a8080;
-        border-radius: 10px;
-        background-color: #FFFFFF;
-        cursor: pointer;
-    }
-
-    select:hover {
-        background-color: #EFEFEF;
-    }
-
-    table,
-    th,
-    td {
-        border: solid 1px rgba(221, 221, 221, 0);
-        border-collapse: collapse;
-        padding: 2px 3px;
-        text-align: center;
-        font-family: sans-serif;
-    }
-
-    table {
-        width: 100%;
-    }
-
-    tr {
-        height: 50px;
-        font-size: large;
-    }
-
-    th {
-        font-weight: bold;
-    }
-
-    .btn {
-        font-size: 13.5px;
-        height: 45px;
-        width: 150px;
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        font-family: "Roboto", sans-serif;
-        font-weight: bold;
-        color: white;
-        border-radius: 10px;
-        border: 2px solid #ffffff00;
-        cursor: pointer;
-
-    }
-
-    .pointer {
-        cursor: pointer;
-    }
-
-    .secondary {
-        background-color: #868286;
-    }
-
-    .secondary:hover {
-        background-color: #535253;
-    }
-
-    .alert {
-        background-color: #ff0000;
-    }
-
-    .alert:hover {
-        background-color: #d51515;
-    }
-
-    .alert_text {
-        color: #ff0000;
-    }
-
-    .alert_text:hover {
-        color: #d51515;
-    }
-
-    .green {
-        background-color: #0dff00;
-    }
-
-    .green:hover {
-        background-color: #46ca41;
-    }
-    
-    .green_text {
-        color: #0dff00;
-    }
-
-    .green_text:hover {
-        color: #46ca41;
     }
 </style>

@@ -55,10 +55,9 @@ class SyncSocket {
 
 }
 
-const WS_URL = "ws://localhost:8000/sync"
-let syncSocket = new SyncSocket(WS_URL)
+let syncSocket = new SyncSocket("ws://localhost:8000/sync")
 
-document.addEventListener("healthcheck", async () => {
+async function healthcheck() {
     function markAsPassed(elementId) {
         const element = document.getElementById(elementId)
         element.setAttribute("class", "green_text")
@@ -75,6 +74,7 @@ document.addEventListener("healthcheck", async () => {
     console.log("Healthcheck!")
     const icon = document.getElementById("healthcheck_icon")
     try {
+        let passing = true
         const healthcheck_result = await (await fetch("/healthcheck")).json()
         markAsPassed("server_check")
         if (healthcheck_result.trade_node_check == true) {
@@ -84,14 +84,20 @@ document.addEventListener("healthcheck", async () => {
         else {
             markAsFailed("trade_node_check", "Server se nemůže připojit k obchodním uzlům.")
             icon.setAttribute("fill", " #FF0000")
+            passing = false
         }
 
-        if (healthcheck_result.broker_api_check == true) {
+        if (healthcheck_result.broker_api_check == true && passing) {
             markAsPassed("broker_api_check")
             icon.setAttribute("fill", "#008000")
         }
+        else if (healthcheck_result.broker_api_check == true && !passing) {
+            markAsPassed("broker_api_check")
+            icon.setAttribute("fill", " #FF0000")
+        }
         else {
             markAsFailed("broker_api_check", "Server se nemůže připojit k API brokera.")
+            passing = false
             icon.setAttribute("fill", " #FF0000")
         }
 
@@ -102,12 +108,8 @@ document.addEventListener("healthcheck", async () => {
         icon.setAttribute("fill", " #FF0000")
     }
 
-})
-document.addEventListener("onbeforeunload", () => {
-    document.removeEventListener("healthcheck")
-    document.removeEventListener("onbeforeunload")
-})
-setInterval(() => { document.dispatchEvent(new Event("healthcheck")) }, 1000)
+}
+setInterval(healthcheck, 1000)
 
 async function toggleGeneral(btn) {
     const label = btn.getElementsByClassName("center")[0]
@@ -137,3 +139,17 @@ async function toggleGeneral(btn) {
 
     }
 }
+
+syncSocket.on("update_status_bar", async (data) => {
+    const element = document.getElementById(data.key)
+    element.innerHTML = data.value
+    element.setAttribute("class", "bold_text")
+    setTimeout(() => { element.setAttribute("class", "") }, 400)
+})
+
+syncSocket.on("update_statistics", async (data) => {
+    const element = document.getElementById(`${data.ticker}_${data.stat_id}_${data.key}`)
+    element.innerHTML = data.value
+    element.setAttribute("class", "bold_text")
+    setTimeout(() => { element.setAttribute("class", "") }, 400)
+})
