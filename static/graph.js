@@ -35,12 +35,11 @@ class Graph extends HTMLElement {
             </style>
         `
         console.log("Syncing graph!")
-        const data = JSON.parse(await syncSocket.get({
+        const data = (await syncSocket.get({
             action: "graph_sync",
             ticker: this.ticker,
             sync_time: "7d"
-        }))
-        console.log(data)
+        })).data
         this.chart = new Chart("priceGraph", {
             type: "line",
             data: {
@@ -75,7 +74,6 @@ class Graph extends HTMLElement {
 
         syncSocket.on("update_graph", async (updateData) => {
             if (updateData.ticker == this.ticker) {
-                console.log("It matches with " + this.ticker)
                 data.push(updateData)
                 const dataset = this.chart.data.datasets[0]
                 dataset.data = data.map(datapoint => datapoint.price)

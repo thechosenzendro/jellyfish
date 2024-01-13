@@ -321,7 +321,10 @@ async def sync(websocket: WebSocket):
             action = request.get("action", "no_action")
             if hasattr(SyncHandler, action):
                 await websocket.send_json(
-                    getattr(SyncHandler, request["action"])(user, request)
+                    {
+                        "action": action,
+                        "data": getattr(SyncHandler, request["action"])(user, request),
+                    }
                 )
             else:
                 await websocket.send_json({"error": "No such action"})

@@ -1,43 +1,62 @@
-const syncSocket = new WebSocket("ws://localhost:8000/sync")
+class SyncSocket {
+    constructor(url) {
+        this.connect = (url) => {
+            this.socket = new WebSocket(url)
 
-syncSocket.onopen = (event) => {
-    console.log("Connected to the sync socket")
-    document.dispatchEvent(new Event("syncConnected"))
-}
+            this.socket.onopen = (event) => {
+                console.log("Connected to the sync socket")
+                document.dispatchEvent(new Event("syncConnected"))
+            }
 
-syncSocket.onclose = (event) => {
-    console.error("Disconnected from the sync socket")
-}
+            this.socket.onmessage = (event) => {
+                const dispatchEvent = new CustomEvent("sync_message", { detail: JSON.parse(event.data) })
+                document.dispatchEvent(dispatchEvent)
+            }
 
-syncSocket.on = (action, cb) => {
-    const old_onmessage = syncSocket.onmessage
-    console.log(old_onmessage)
-    syncSocket.onmessage = async (event) => {
-        const data = JSON.parse(event.data)
-        console.log(`Got some data! Is this right?: ${event.data}`)
-        if (data.action == action) {
-            await cb(data)
+            this.socket.onclose = (event) => {
+                console.error("Disconnected from the sync socket")
+                setInterval(() => {
+                    if (this.socket.readyState == this.socket.CLOSED) {
+                        console.warn("Trying to reconnect to the sync socket")
+                        this.connect(this.WS_URL)
+                    }
+                }, 500)
+            }
+
         }
-        else {
-            old_onmessage(data)
-        }
+        this.WS_URL = url
+        this.connect(this.WS_URL)
     }
+
+    on(action, cb) {
+        async function onHandler(event) {
+            const data = event.detail
+            if (action == data.action) {
+                await cb(data)
+            }
+        }
+        document.addEventListener("sync_message", onHandler)
+    }
+
+    get(request) {
+        this.socket.send(JSON.stringify(request))
+        return new Promise((resolve, reject) => {
+            function getHandler(event) {
+                const data = event.detail
+                if (request.action == data.action) {
+                    document.removeEventListener("sync_message", getHandler)
+                    resolve(data)
+                }
+            }
+
+            document.addEventListener("sync_message", getHandler)
+        })
+    }
+
 }
 
-syncSocket.get = (request) => {
-    syncSocket.send(JSON.stringify(request))
-    return new Promise((resolve, reject) => {
-
-        syncSocket.onerror = (err) => {
-            console.log(`An error happened during the GET operation: ${err}`)
-            reject(err)
-        }
-        syncSocket.onmessage = (event) => {
-            console.log(`Got data!: ${event.data}`)
-            resolve(event.data)
-        }
-    })
-}
+const WS_URL = "ws://localhost:8000/sync"
+let syncSocket = new SyncSocket(WS_URL)
 
 document.addEventListener("healthcheck", async () => {
     function markAsPassed(elementId) {
@@ -92,31 +111,28 @@ setInterval(() => { document.dispatchEvent(new Event("healthcheck")) }, 1000)
 
 async function toggleGeneral(btn) {
     const label = btn.getElementsByClassName("center")[0]
-    console.log(label)
     if (label.innerHTML == "STOP") {
         if (confirm("Opravdu chcete zastavit obchodování?")) {
-            const result = JSON.parse(await syncSocket.get({ action: "stop_trading" }))
-            if (result.result == "ok") {
+            const result = await syncSocket.get({ action: "stop_trading" })
+            if (result.data.result == "ok") {
                 btn.setAttribute("class", "green btn center")
                 label.innerHTML = "START"
             }
             else {
-                alert(`Error: ${result}`)
+                alert(`Error: ${JSON.stringify(result)}`)
             }
-            console.log(result)
 
         }
     }
     else {
-        const result = JSON.parse(await syncSocket.get({ action: "start_trading" }))
-        if (result.result == "ok") {
+        const result = await syncSocket.get({ action: "start_trading" })
+        if (result.data.result == "ok") {
             btn.setAttribute("class", "alert btn center")
             label.innerHTML = "STOP"
         }
         else {
             alert(`Error: ${result}`)
         }
-        console.log(result)
 
 
     }
