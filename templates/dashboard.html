@@ -20,6 +20,34 @@
     <p id="trade_node_check">NODATA</p>
 </dialog>
 
+<dialog id="settings">
+    <h1>Nastavení</h1>
+    <span class="pointer" onclick="document.getElementById('settings').close()">&times;</span>
+    <form action="/settings" method="post">
+        <h2>Procento financí pro tickery ze zůstatku</h2>
+        <input type="number" placeholder="rozmezí 1-100" pattern="^(?:100|\d{1,2})$" title="Napište číslo mezi 1 až 100"
+            required><span>%</span>
+
+        <br>
+        <h2>Počet skupin pro analýzu grafu</h2>
+        <input type="number" placeholder="např. 2" title="Napište počet skupin" required>
+
+        <br>
+
+        <h2>Počet cen ve skupině</h2>
+        <input type="number" placeholder="např. 5" title="Napište počet cen ve skupině" required>
+
+        <br>
+
+        <h2>Počet cen vyhovujících podmínce ve skupině</h2>
+        <input type="number" placeholder="např. 4" title="Napište počet cen vyhovujících podmínce ve skupině" required>
+
+        <br>
+        <button type="submit">Uložit</button>
+
+    </form>
+</dialog>
+
 <body>
     <div class="wrapper">
         <div class="tickers border">
@@ -43,6 +71,9 @@
             <form action="/logout" method="post" class="center">
                 <button type="submit" class="center">Odhlásit se</button>
             </form>
+            <div class="secondary btn" onclick="document.getElementById('settings').showModal()">
+                <p class="center">Nastavení</p>
+            </div>
         </div>
         <div id="mainView" class="mainView border">
             <h1>Vyberte ticker.</h1>

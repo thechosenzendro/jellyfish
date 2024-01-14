@@ -186,6 +186,16 @@ async def view(ticker: str, request: Request):
         return user_result.err_value
     statistics = [
         {
+            "name": "Aktuální",
+            "id": "now",
+            "number_of_trades": 27,
+            "expenditure": "1000 CZK",
+            "revenue": "10000 CZK",
+            "fee": "10 CZK",
+            "profit": "8990 CZK",
+            "profit_factor": 1,
+        },
+        {
             "name": "Denní",
             "id": "daily",
             "number_of_trades": 27,
@@ -356,7 +366,7 @@ async def sync_test():
             )
             print("Sending new status bar data!")
 
-            ids = ["daily", "weekly", "monthly", "yearly"]
+            ids = ["now", "daily", "weekly", "monthly", "yearly"]
             keys = [
                 "number_of_trades",
                 "expenditure",
