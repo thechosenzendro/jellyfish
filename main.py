@@ -1,3 +1,4 @@
+from pprint import pprint
 import random
 import requests_cache
 import yfinance
@@ -7,20 +8,22 @@ import pandas as pd
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, WebSocket
 from fastapi import Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 
 from db import session
 from models import User, TradeNode, Config
-from jellyserve.utils import template, sha512
+
+from jellyserve.utils import sha512
+from jellyserve.components import Component, Template
 
 from result import Ok, Err, Result, is_ok, is_err
 from datetime import datetime
-from pprint import pprint
 
-STATES = ["analyzing", "bought", "shorting", "noop"]
 
 app = FastAPI()
-req_session = requests_cache.CachedSession("db/cache")
+req_session = requests_cache.CachedSession("dev")
+
+STATES = ["analyzing", "bought", "shorting", "noop"]
 
 
 # Broker API
@@ -57,12 +60,16 @@ def get_user(request: Request | WebSocket) -> Result[User, RedirectResponse]:
     return Ok(user)
 
 
+class LoginPage(Component):
+    template: Template = Template("templates/login.jinja")
+
+
 @app.get("/")
 async def index(request: Request):
     user_result = get_user(request)
     if is_ok(user_result):
         return RedirectResponse(status_code=302, url="/dashboard")
-    return HTMLResponse(template("login.html"))
+    return LoginPage().html()
 
 
 @app.post("/login")
@@ -93,6 +100,18 @@ async def login(request: Request):
         return RedirectResponse(status_code=302, url="/")
 
 
+from typing import Any, List, Dict
+
+
+class Dashboard(Component):
+    trade_nodes: List[TradeNode]
+    broker: Dict[str, str]
+    currencies: Dict[str, Any]
+    status_bar: Dict[str, str]
+
+    template: Template = Template("templates/dashboard.jinja")
+
+
 @app.get("/dashboard")
 async def dashboard(request: Request):
     # This would work so well as a macro! I am starting to get Elixir.
@@ -101,11 +120,10 @@ async def dashboard(request: Request):
         return user_result.err_value
     user: User = user_result.ok_value
 
-    trade_servers = session.query(TradeNode).all()
+    trade_nodes = session.query(TradeNode).all()
     currencies = req_session.get("https://data.kurzy.cz/json/meny/b.json").json()[
         "kurzy"
     ]
-
     currencies[user.config.currency]["selected"] = True
     broker = {
         "name": Broker.name,
@@ -120,14 +138,12 @@ async def dashboard(request: Request):
         "level": "xxxxxx$",
     }
 
-    page = template(
-        "dashboard.html",
-        trade_servers=trade_servers,
+    return Dashboard(
+        trade_nodes=trade_nodes,
         broker=broker,
         currencies=currencies,
-        **status_bar
-    )
-    return HTMLResponse(page)
+        status_bar=status_bar,
+    ).html()
 
 
 @app.post("/logout")
@@ -177,6 +193,20 @@ async def healthcheck_wrapper(request: Request):
     user: User = user_result.ok_value
 
     return JSONResponse(await healthcheck())
+
+
+class Statistics(Component):
+    statistics: List[Dict[str, str | int]]
+    ticker: str
+
+    template: Template = Template("templates/statistics.jinja")
+
+
+class Ticker(Component):
+    statistics: str
+    ticker: str
+
+    template: Template = Template("templates/ticker.jinja")
 
 
 @app.get("/view/{ticker}")
@@ -238,14 +268,10 @@ async def view(ticker: str, request: Request):
     ]
 
     if ticker == "statistics":
-        return HTMLResponse(
-            template("statistics.html", statistics=statistics, ticker="global")
-        )
+        return Statistics(statistics=statistics, ticker="global").html()
     else:
-        statistics = template("statistics.html", statistics=statistics, ticker=ticker)
-        return HTMLResponse(
-            template("ticker.html", ticker=ticker, statistics=statistics)
-        )
+        statistics = Statistics(statistics=statistics, ticker=ticker).raw()
+        return Ticker(ticker=ticker, statistics=statistics).html()
 
 
 class SyncConnectionManager:

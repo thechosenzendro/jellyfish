@@ -20,7 +20,7 @@
     <p id="trade_node_check">NODATA</p>
 </dialog>
 
-<dialog id="settings">
+<dialog id="settings" class="dialog">
     <h1>Nastavení</h1>
     <span class="pointer" onclick="document.getElementById('settings').close()">&times;</span>
     <form action="/settings" method="post">
@@ -56,9 +56,9 @@
                 <p class="center">Statistiky</p>
             </div>
 
-            {% for trade_server in trade_servers %}
-            <div class="secondary btn" hx-get="/view/{{trade_server.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
-                <p class="center">{{ trade_server.ticker }}</p>
+            {% for trade_node in trade_nodes %}
+            <div class="secondary btn" hx-get="/view/{{trade_node.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
+                <p class="center">{{ trade_node.ticker }}</p>
             </div>
             {% endfor %}
 

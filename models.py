@@ -2,6 +2,7 @@ from db import orm
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from pydantic import BaseModel
 
 
 class User(orm.Base):

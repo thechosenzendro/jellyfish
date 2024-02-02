@@ -6,6 +6,18 @@ h1 {
     margin: 10px;
 }
 
+.dialog {
+    height: auto;
+    width: 40%;
+    margin: auto;
+    background-color: rgb(243, 239, 239);
+    text-align: center;
+    border: 2px solid #8a8080;
+    padding: 10px;
+    box-shadow: 10px 10px 10px rgb(138, 127, 127);
+    border-radius: 10px;
+}
+
 .border {
     border: 2px solid #8a8080;
 }

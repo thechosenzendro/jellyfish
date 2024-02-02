@@ -149,7 +149,9 @@ syncSocket.on("update_status_bar", async (data) => {
 
 syncSocket.on("update_statistics", async (data) => {
     const element = document.getElementById(`${data.ticker}_${data.stat_id}_${data.key}`)
-    element.innerHTML = data.value
-    element.setAttribute("class", "bold_text")
-    setTimeout(() => { element.setAttribute("class", "") }, 400)
+    try {
+        element.innerHTML = data.value
+        element.setAttribute("class", "bold_text")
+        setTimeout(() => { element.setAttribute("class", "") }, 400)
+    } catch { }
 })
