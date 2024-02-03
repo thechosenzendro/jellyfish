@@ -7,7 +7,6 @@ h1 {
 }
 
 .dialog {
-    height: auto;
     width: 40%;
     margin: auto;
     background-color: rgb(243, 239, 239);
@@ -156,4 +155,18 @@ input {
     border-radius: 10px;
     font-family: 'Roboto', sans-serif;
     display: table-cell;
+}
+
+.PopupCloseButton {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.PopupCloseButton:hover,
+.PopupCloseButton:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }

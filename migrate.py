@@ -1,5 +1,5 @@
 from db import orm, session
-from models import User, TradeNode, Config
+from models import User, TradeNode, Config, Settings
 from jellyserve.utils import sha512
 
 orm.migrate()
@@ -12,11 +12,8 @@ if session.query(User).filter_by(username="admin").first() is None:
 
     session.commit()
 
-# Create test TradeServer
-if session.query(TradeNode).filter_by(ticker="AAPL").first() is None:
-    session.add(TradeNode(ticker="AAPL", active=True))
-    session.commit()
-
-if session.query(TradeNode).filter_by(ticker="MSFT").first() is None:
-    session.add(TradeNode(ticker="MSFT", active=True))
+if session.query(Settings).first() is None:
+    session.add(
+        Settings(allocation_of_funds=50, groups=2, prices_in_groups=5, compliance=3)
+    )
     session.commit()

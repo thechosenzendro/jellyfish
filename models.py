@@ -31,11 +31,9 @@ class TradeNode(orm.Base):
         self.ticker = ticker
         self.active = active
 
-    def start(self):
-        ...
+    def start(self): ...
 
-    def stop(self):
-        ...
+    def stop(self): ...
 
 
 class Trade(orm.Base):
@@ -57,3 +55,25 @@ class Config(orm.Base):
 
     def __init__(self, currency: str):
         self.currency = currency
+
+
+class Settings(orm.Base):
+    __tablename__ = "Settings"
+    id = Column(Integer, autoincrement=True, primary_key=True)
+
+    allocation_of_funds = Column(Integer, nullable=False)
+    groups = Column(Integer, nullable=False)
+    prices_in_groups = Column(Integer, nullable=False)
+    compliance = Column(Integer, nullable=False)
+
+    def __init__(
+        self,
+        allocation_of_funds: int,
+        groups: int,
+        prices_in_groups: int,
+        compliance: int,
+    ):
+        self.allocation_of_funds = allocation_of_funds
+        self.groups = groups
+        self.prices_in_groups = prices_in_groups
+        self.compliance = compliance

@@ -9,9 +9,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, WebSocket
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
+from contextlib import asynccontextmanager
 
 from db import session
-from models import User, TradeNode, Config
+from models import User, TradeNode, Config, Settings
 
 from jellyserve.utils import sha512
 from jellyserve.components import Component, Template
@@ -20,7 +21,84 @@ from result import Ok, Err, Result, is_ok, is_err
 from datetime import datetime
 
 
-app = FastAPI()
+async def start_day():
+    print("Starting Jellyfish!")
+    BUDGET = 1000
+
+    trade_node_budget = (
+        BUDGET * (session.query(Settings).first().allocation_of_funds / 100) / 10
+    )
+    potentional_gainers = pd.read_html("https://finance.yahoo.com/gainers")[0]
+    gainers: list[TradeNode] = []
+
+    for _, gainer in potentional_gainers.iterrows():
+        price = gainer["Price (Intraday)"]
+        ticker = gainer["Symbol"]
+
+        if price > trade_node_budget:
+            continue
+        if not Broker.is_available(ticker):
+            continue
+        if len(gainers) == 5:
+            break
+
+        print(ticker, price)
+        gainers.append(TradeNode(ticker=ticker, active=True))
+
+    potentional_losers = pd.read_html("https://finance.yahoo.com/losers")[0]
+    losers: list[TradeNode] = []
+
+    for _, loser in potentional_losers.iterrows():
+        price = loser["Price (Intraday)"]
+        ticker = loser["Symbol"]
+
+        if price > trade_node_budget:
+            continue
+        if not Broker.is_available(ticker):
+            continue
+        if len(losers) == 5:
+            break
+
+        print(ticker, price)
+        losers.append(TradeNode(ticker=ticker, active=True))
+
+    for gainer, loser in zip(gainers, losers):
+        existing_gainer = (
+            session.query(TradeNode).filter_by(ticker=gainer.ticker).first()
+        )
+        if not existing_gainer:
+            session.add(gainer)
+        else:
+            existing_gainer.active = True
+
+        gainer.start()
+
+        existing_loser = session.query(TradeNode).filter_by(ticker=loser.ticker).first()
+        if not existing_loser:
+            session.add(loser)
+        else:
+            existing_loser.active = True
+
+        gainer.start()
+
+    session.commit()
+
+
+async def end_day():
+    for trade_node in session.query(TradeNode).filter_by(active=True).all():
+        trade_node.stop()
+        trade_node.active = False
+    session.commit()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await start_day()
+    yield
+    await end_day()
+
+
+app = FastAPI(lifespan=lifespan)
 req_session = requests_cache.CachedSession("dev")
 
 STATES = ["analyzing", "bought", "shorting", "noop"]
@@ -33,15 +111,16 @@ class Broker:
 
     @staticmethod
     def is_available(ticker: str):
-        ...
+        return True
 
     @staticmethod
-    def sell(ticker: str):
-        ...
+    def sell(ticker: str): ...
 
     @staticmethod
-    def buy(ticker: str, amount: int):
-        ...
+    def buy(ticker: str, amount: int): ...
+
+
+# Lifecycle
 
 
 # Routes
@@ -69,6 +148,7 @@ async def index(request: Request):
     user_result = get_user(request)
     if is_ok(user_result):
         return RedirectResponse(status_code=302, url="/dashboard")
+
     return LoginPage().html()
 
 
@@ -109,7 +189,7 @@ class Dashboard(Component):
     currencies: Dict[str, Any]
     status_bar: Dict[str, str]
 
-    template: Template = Template("templates/dashboard.jinja")
+    template: Template = Template("templates/dashboard/dashboard.jinja")
 
 
 @app.get("/dashboard")
@@ -177,7 +257,6 @@ async def change_currency(request: Request):
 async def healthcheck() -> dict:
     # TODO: Do some actual checking
     randint = random.randint(0, 10)
-    print(randint)
     if randint == 6:
         return {"trade_node_check": False, "broker_api_check": True}
     if randint == 4:
@@ -272,6 +351,33 @@ async def view(ticker: str, request: Request):
     else:
         statistics = Statistics(statistics=statistics, ticker=ticker).raw()
         return Ticker(ticker=ticker, statistics=statistics).html()
+
+
+class SettingsComponent(Component):
+    allocation_of_funds: int
+    groups: int
+    prices_in_groups: int
+    compliance: int
+    template: Template = Template("templates/dashboard/settings.jinja")
+
+
+@app.get("/settings")
+async def get_settings():
+    settings = session.query(Settings).first()
+    return SettingsComponent(**vars(settings)).html()
+
+
+@app.post("/settings")
+async def post_settings(request: Request):
+    form_data = await request.form()
+    settings = session.query(Settings).first()
+    settings.allocation_of_funds = form_data["allocation_of_funds"]
+    settings.groups = form_data["groups"]
+    settings.prices_in_groups = form_data["prices_in_groups"]
+    settings.compliance = form_data["compliance"]
+    session.commit()
+
+    return RedirectResponse("/dashboard", 302)
 
 
 class SyncConnectionManager:
@@ -381,7 +487,6 @@ async def sync_test():
                     "state": state,
                 }
             )
-            print("Sending new graph data!")
             # Sending new status bar data
             await sync_socket.broadcast_json(
                 {
@@ -390,8 +495,6 @@ async def sync_test():
                     "value": str(random.randint(0, 1000)) + "$",
                 }
             )
-            print("Sending new status bar data!")
-
             ids = ["now", "daily", "weekly", "monthly", "yearly"]
             keys = [
                 "number_of_trades",
@@ -412,7 +515,6 @@ async def sync_test():
                     "value": random.randint(0, 1000),
                 }
             )
-            print("Sending new statistics!")
         except:
             pass
         await asyncio.sleep(1)

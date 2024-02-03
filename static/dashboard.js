@@ -139,6 +139,9 @@ async function toggleGeneral(btn) {
 
     }
 }
+document.getElementById("open_settings").addEventListener("click", () => {
+    document.getElementById("settings").showModal()
+})
 
 syncSocket.on("update_status_bar", async (data) => {
     const element = document.getElementById(data.key)

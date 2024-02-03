@@ -19,61 +19,34 @@
     <p>Test připojení k obchodním uzlům: </p>
     <p id="trade_node_check">NODATA</p>
 </dialog>
-
 <dialog id="settings" class="dialog">
-    <h1>Nastavení</h1>
-    <span class="pointer" onclick="document.getElementById('settings').close()">&times;</span>
-    <form action="/settings" method="post">
-        <h2>Procento financí pro tickery ze zůstatku</h2>
-        <input type="number" placeholder="rozmezí 1-100" pattern="^(?:100|\d{1,2})$" title="Napište číslo mezi 1 až 100"
-            required><span>%</span>
-
-        <br>
-        <h2>Počet skupin pro analýzu grafu</h2>
-        <input type="number" placeholder="např. 2" title="Napište počet skupin" required>
-
-        <br>
-
-        <h2>Počet cen ve skupině</h2>
-        <input type="number" placeholder="např. 5" title="Napište počet cen ve skupině" required>
-
-        <br>
-
-        <h2>Počet cen vyhovujících podmínce ve skupině</h2>
-        <input type="number" placeholder="např. 4" title="Napište počet cen vyhovujících podmínce ve skupině" required>
-
-        <br>
-        <button type="submit">Uložit</button>
-
-    </form>
 </dialog>
 
 <body>
     <div class="wrapper">
-        <div class="tickers border">
+        <div class="tickersView border">
             <h1>Dashboard</h1>
             <div class="secondary btn" hx-get="/view/statistics" hx-swap="innerHTML" hx-target="#mainView">
                 <p class="center">Statistiky</p>
             </div>
-
-            {% for trade_node in trade_nodes %}
-            <div class="secondary btn" hx-get="/view/{{trade_node.ticker}}" hx-swap="innerHTML" hx-target="#mainView">
-                <p class="center">{{ trade_node.ticker }}</p>
+            <div class="tickers">
+                {% for trade_node in trade_nodes %}
+                <div class="secondary btn" hx-get="/view/{{trade_node.ticker}}" hx-swap="innerHTML"
+                    hx-target="#mainView">
+                    <p class="center">{{ trade_node.ticker }}</p>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-
-            <!-- Do it then improve it -->
 
             <div class="alert btn center" onclick="toggleGeneral(this)">
                 <p class="center">STOP</p>
             </div>
 
+            <button id="open_settings" class="secondary btn" hx-get="/settings" hx-target="#settings">Nastavení</button>
+
             <form action="/logout" method="post" class="center">
                 <button type="submit" class="center">Odhlásit se</button>
             </form>
-            <div class="secondary btn" onclick="document.getElementById('settings').showModal()">
-                <p class="center">Nastavení</p>
-            </div>
         </div>
         <div id="mainView" class="mainView border">
             <h1>Vyberte ticker.</h1>
@@ -106,11 +79,11 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td id="balance">{{ balance }}</td>
-                    <td id="equity">{{ equity }}</td>
-                    <td id="margin">{{ margin }}</td>
-                    <td id="free_margin">{{ free_margin }}</td>
-                    <td id="level">{{ level }}</td>
+                    <td id="balance">{{ status_bar.balance }}</td>
+                    <td id="equity">{{ status_bar.equity }}</td>
+                    <td id="margin">{{ status_bar.margin }}</td>
+                    <td id="free_margin">{{ status_bar.free_margin }}</td>
+                    <td id="level">{{ status_bar.level }}</td>
                     <td>
                         <svg fill="#000000" height="50px" width="50px" version="1.1" id="healthcheck_icon"
                             onclick="document.getElementById('network').showModal()" xmlns="http://www.w3.org/2000/svg"
@@ -168,6 +141,11 @@
     }
 
     .tickers {
+        overflow-y: scroll;
+        height: 300px;
+    }
+
+    .tickersView {
         grid-area: sidebar;
         text-align: center;
     }

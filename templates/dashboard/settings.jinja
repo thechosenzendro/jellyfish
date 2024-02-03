@@ -1,0 +1,16 @@
+<h1>Nastavení</h1>
+<span class="pointer PopupCloseButton" onclick="document.getElementById('settings').close()">&times;</span>
+<form action="/settings" method="post">
+    {% macro field(name, label, placeholder, value="") %}
+    <h2>{{ label }}</h2>
+    <input type="number" name="{{ name }}" placeholder="{{ placeholder }}" value="{{ value }}" required>
+
+    <br>
+    {% endmacro %}
+    {{ field("allocation_of_funds", "Procento financí pro tickery ze zůstatku", "rozmezí 1-100", allocation_of_funds) }}
+    {{ field("groups", "Počet skupin pro analýzu grafu", "např. 2", groups) }}
+    {{ field("prices_in_groups", "Počet cen ve skupině", "např. 5", prices_in_groups) }}
+    {{ field("compliance", "Počet cen vyhovujících podmínce ve skupině", "např. 4", compliance) }}
+    <button type="submit">Uložit</button>
+
+</form>
