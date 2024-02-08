@@ -31,6 +31,7 @@ class SyncSocket {
     on(action, cb) {
         async function onHandler(event) {
             const data = event.detail
+            console.log(data)
             if (action == data.action) {
                 await cb(data)
             }

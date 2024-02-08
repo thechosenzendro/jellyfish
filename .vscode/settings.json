@@ -3,9 +3,10 @@
         {
             "previewLimit": 50,
             "driver": "SQLite",
-            "database": "${workspaceFolder:jellyfish}/dev.db",
-            "name": "devdb"
+            "name": "dev db",
+            "database": "${workspaceFolder:jellyfish}/dev.sqlite"
         }
     ],
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "off"
 }

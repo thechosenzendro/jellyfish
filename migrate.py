@@ -10,10 +10,12 @@ if session.query(User).filter_by(username="admin").first() is None:
     admin.config = Config(currency="USD")
     session.add(admin)
 
-    session.commit()
+if session.query(TradeNode).filter_by(ticker="AAPL").first() is None:
+    session.add(TradeNode("AAPL", active=True))
 
 if session.query(Settings).first() is None:
     session.add(
         Settings(allocation_of_funds=50, groups=2, prices_in_groups=5, compliance=3)
     )
-    session.commit()
+
+session.commit()
