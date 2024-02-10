@@ -1,7 +1,7 @@
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from pprint import pprint
+
 import random
-from numpy import broadcast
 import requests_cache
 import yfinance
 import asyncio
@@ -9,11 +9,11 @@ import pandas as pd
 
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, WebSocket
-from fastapi import Request, Response
+from fastapi import Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from contextlib import asynccontextmanager
 
-from db import orm, session
+from db import session
 
 from jellyserve.utils import sha512
 from jellyserve.components import Component, Template
@@ -21,6 +21,8 @@ from jellyserve.components import Component, Template
 from result import Ok, Err, Result, is_ok, is_err
 from datetime import datetime
 from trading import Broker
+from result import Result, Ok, Err, is_ok, is_err
+from models import User, TradeNode, Settings
 
 
 class SyncConnectionManager:
@@ -31,18 +33,18 @@ class SyncConnectionManager:
         self.active_connections[user] = websocket
 
     def remove_connection(self, user: User):
-        self.active_connections[user] = None
+        del self.active_connections[user]
 
     async def send_json(self, _dict: dict, user: User):
         await self.active_connections[user].send_json(_dict)
 
     async def broadcast_json(self, _dict: dict):
-        print(f"Broadcasting {_dict} to {self.active_connections} with id {id(self)}")
         for connection in self.active_connections.values():
             await connection.send_json(_dict)
 
 
 sync_socket = SyncConnectionManager()
+_sync_queue = Queue()
 
 
 async def start_day():
@@ -50,8 +52,9 @@ async def start_day():
     trade_node.active = True
     session.commit()
 
-    process = Process(target=trade_node.start)
+    process = Process(target=trade_node.start, args=(_sync_queue,))
     try:
+        print(f"Starting process {process}")
         process.start()
     except KeyboardInterrupt:
         process.kill()
@@ -429,9 +432,6 @@ class SyncHandler:
         return {"result": "ok"}
 
 
-broadcast_state = sync_socket.sync_socket.broadcast_json
-
-
 @app.websocket("/sync")
 async def sync(websocket: WebSocket):
     user_result = get_user(websocket)
@@ -442,7 +442,7 @@ async def sync(websocket: WebSocket):
         return 1
     user: User = user_result.ok_value
 
-    sync_socket.sync_socket.add_connection(user, websocket)
+    sync_socket.add_connection(user, websocket)
     try:
         while True:
             request: dict = await websocket.receive_json()
@@ -457,7 +457,7 @@ async def sync(websocket: WebSocket):
             else:
                 await websocket.send_json({"error": "No such action"})
     except:
-        sync_socket.sync_socket.remove_connection(user)
+        sync_socket.remove_connection(user)
 
 
 async def sync_test():
@@ -478,9 +478,12 @@ async def sync_test():
         "level",
     ]
     while True:
+        if not _sync_queue.empty():
+            value = _sync_queue.get()
+            await sync_socket.broadcast_json(value)
         try:
             # Sending new status bar data
-            await sync_socket.sync_socket.broadcast_json(
+            await sync_socket.broadcast_json(
                 {
                     "action": "update_status_bar",
                     "key": get_random(status_bar_keys),
@@ -498,7 +501,7 @@ async def sync_test():
             ]
 
             # Sending new statistic data
-            await sync_socket.sync_socket.broadcast_json(
+            await sync_socket.broadcast_json(
                 {
                     "action": "update_statistics",
                     "ticker": get_random(tickers),
@@ -509,275 +512,7 @@ async def sync_test():
             )
         except:
             pass
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
 
 asyncio.ensure_future(sync_test())
-
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
-from trading import TradeState, PriceFeed, AnalysisResult, Broker
-from result import Result, Ok, Err, is_ok, is_err
-
-
-class User(orm.Base):
-    __tablename__ = "Users"
-    id = Column(Integer, autoincrement=True, primary_key=True)
-    username = Column(String, unique=True)
-    password = Column(String)
-    session = Column(String, unique=True)
-    config = relationship("Config", backref="user", uselist=False)
-
-    def __init__(self, username: str, password: str):
-        self.username = username
-        self.password = password
-
-    def __repr__(self):
-        return "<User(id='%s', username='%s')>" % (self.id, self.username)
-
-
-class TradeNode(orm.Base):
-    __tablename__ = "TradeNodes"
-    ticker = Column(String, primary_key=True, nullable=False, unique=True)
-    active = Column(Boolean, nullable=False)
-    trades = relationship("Trade", backref="trade_node")
-
-    def __init__(self, ticker: str, active: bool = False):
-        self.ticker = ticker
-        self.active = active
-
-    def _analyze(self, groups: list[list[int]]):
-        comparison_results = []
-        for group in groups:
-            comparison_results.append(
-                [group[i] > group[i - 1] for i in range(1, len(group))]
-            )
-
-        res = [
-            sum(group) >= session.query(Settings).first().compliance
-            for group in comparison_results
-        ]
-
-        if not False in res:
-            return AnalysisResult.GOING_UP
-
-        res = [
-            not len(group) - sum(group) >= session.query(Settings).first().compliance
-            for group in comparison_results
-        ]
-        if not False in res:
-            return AnalysisResult.GOING_DOWN
-        else:
-            return AnalysisResult.INSUFFICIENT
-
-    def start(self):
-        asyncio.run(self.trade())
-
-    async def trade(self):
-        self.state = TradeState.DEFAULT
-
-        # TODO: Make this not horrible
-
-        group = []
-        groups = []
-        for price in PriceFeed(self.ticker):
-            if not self.active:
-                break
-
-            # Accumulating the values
-            if len(group) == session.query(Settings).first().prices_in_groups:
-                groups.append(group)
-                group = []
-            else:
-                group.append(price)
-                continue
-            if not len(groups) == session.query(Settings).first().groups:
-                group.append(price)
-                continue
-
-            print("Doing an action!")
-
-            analysis_result = self._analyze(groups)
-
-            group.clear()
-            groups.clear()
-            BUDGET = 1000
-            budget = (
-                BUDGET
-                * (session.query(Settings).first().allocation_of_funds / 100)
-                / 10
-            )
-
-            amount = int(budget / price)
-            if self.state == TradeState.BOUGHT:
-                if analysis_result == AnalysisResult.GOING_UP:
-                    # Send "bought" to frontend
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "bought",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.GOING_DOWN:
-                    # Send "analyzing" to frontend
-                    Broker.sell(self.ticker)
-                    self.state = TradeState.DEFAULT
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "analyzing",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.INSUFFICIENT:
-                    # Send "bought" to frontend
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "bought",
-                        }
-                    )
-
-            elif self.state == TradeState.DEFAULT:
-                if analysis_result == AnalysisResult.GOING_UP:
-                    # Send "bought" to frontend
-                    Broker.buy(self.ticker, amount)
-                    self.state = TradeState.BOUGHT
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "bought",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.GOING_DOWN:
-                    # Send "shorting" to frontend
-                    Broker.sell(self.ticker)
-                    self.state = TradeState.SHORTING
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "shorting",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.INSUFFICIENT:
-                    # Send "analyzing" to frontend
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "analyzing",
-                        }
-                    )
-
-            elif self.state == TradeState.SHORTING:
-                if analysis_result == AnalysisResult.GOING_UP:
-                    # Send "analyzing" to frontend
-                    Broker.buy(self.ticker, amount)
-                    self.state = TradeState.DEFAULT
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "analyzing",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.GOING_DOWN:
-                    # Send "shorting" to frontend
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "shorting",
-                        }
-                    )
-
-                elif analysis_result == AnalysisResult.INSUFFICIENT:
-                    # Send "shorting" to frontend
-
-                    await sync_socket.broadcast_json(
-                        {
-                            "action": "update_graph",
-                            "ticker": self.ticker,
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "price": price,
-                            "state": "shorting",
-                        }
-                    )
-
-    async def stop(self): ...
-
-
-class Trade(orm.Base):
-    __tablename__ = "Trades"
-    id = Column(Integer, primary_key=True)
-    trade_server_id = Column(Integer, ForeignKey("TradeNodes.ticker"))
-    amount = Column(Integer)
-    opening_price = Column(Integer, nullable=False)
-    closing_price = Column(Integer)
-    opened = Column(DateTime, default=datetime.now)
-    closed = Column(DateTime)
-
-
-class Config(orm.Base):
-    __tablename__ = "Configs"
-    id = Column(Integer, autoincrement=True, primary_key=True)
-    currency = Column(String)
-    user_id = Column(Integer, ForeignKey("Users.id"))
-
-    def __init__(self, currency: str):
-        self.currency = currency
-
-
-class Settings(orm.Base):
-    __tablename__ = "Settings"
-    id = Column(Integer, autoincrement=True, primary_key=True)
-
-    allocation_of_funds = Column(Integer, nullable=False)
-    groups = Column(Integer, nullable=False)
-    prices_in_groups = Column(Integer, nullable=False)
-    compliance = Column(Integer, nullable=False)
-
-    def __init__(
-        self,
-        allocation_of_funds: int,
-        groups: int,
-        prices_in_groups: int,
-        compliance: int,
-    ):
-        self.allocation_of_funds = allocation_of_funds
-        self.groups = groups
-        self.prices_in_groups = prices_in_groups
-        self.compliance = compliance

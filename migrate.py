@@ -1,5 +1,5 @@
 from db import orm, session
-from models import User, TradeNode, Config, Settings
+from main import User, TradeNode, Config, Settings
 from jellyserve.utils import sha512
 
 orm.migrate()
