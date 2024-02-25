@@ -52,6 +52,7 @@ class Graph extends HTMLElement {
                     }
                 }]
             },
+
             options: {
                 responsive: true,
                 maintainAspectRatio: false,

@@ -37,14 +37,14 @@ class Broker:
         return Ok(None)
 
 
-class PriceFeed:
+class _PriceFeed:
     def __new__(cls, *args):
-        prices = yfinance.download("AAPL", period="1d", interval="1m")["Close"]
+        prices = yfinance.download("HOG", period="1d", interval="1m")["Close"]
         print(prices)
         return prices
 
 
-class _PriceFeed:
+class PriceFeed:
     def __new__(cls, *args):
         return [
             10,

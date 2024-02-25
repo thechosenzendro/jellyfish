@@ -1,6 +1,6 @@
 from multiprocessing import Queue
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, DateTime
 import queue
 from db import orm, session
 from trading import TradeState, PriceFeed, AnalysisResult
@@ -57,7 +57,7 @@ class TradeNode(orm.Base):
                     for i in range(1, len(group))
                 ]
             )
-        # TODO: Change
+
         res = []
         for group in comparison_results:
             print(group)
@@ -92,6 +92,7 @@ class TradeNode(orm.Base):
         asyncio.run(self.trade(sync_queue))
 
     async def trade(self, sync_queue: Queue):
+        trade_node = session.query(TradeNode).filter_by(ticker=self.ticker).first()
         self.state = TradeState.DEFAULT
 
         group = []
@@ -99,6 +100,28 @@ class TradeNode(orm.Base):
         for price in PriceFeed(self.ticker):
             if not self.active:
                 break
+
+            try:
+                last_trade: Trade = trade_node.trades[-1]
+            except IndexError:
+                last_trade = None
+            if last_trade is not None and not last_trade.closing_price:
+                if self.state == TradeState.BOUGHT:
+                    if price < last_trade.opening_price:
+                        Broker.sell(self.ticker)
+                        last_trade.closed = datetime.now()
+                        last_trade.closing_price = price
+                        session.commit()
+                        self.state = TradeState.DEFAULT
+
+                elif self.state == TradeState.SHORTING:
+                    if price > last_trade.opening_price:
+                        Broker.buy(self.ticker, last_trade.amount)
+                        last_trade.closed = datetime.now()
+                        last_trade.closing_price = price
+                        session.commit()
+                        self.state = TradeState.DEFAULT
+            print(last_trade)
 
             # Accumulating the values
             if len(group) == session.query(Settings).first().prices_in_groups:
@@ -160,6 +183,10 @@ class TradeNode(orm.Base):
                 elif analysis_result == AnalysisResult.GOING_DOWN:
                     # Send "analyzing" to frontend
                     Broker.sell(self.ticker)
+                    last_trade.closed = datetime.now()
+                    last_trade.closing_price = price
+                    session.commit()
+
                     self.state = TradeState.DEFAULT
 
                     sync_queue.put(
@@ -189,6 +216,12 @@ class TradeNode(orm.Base):
                 if analysis_result == AnalysisResult.GOING_UP:
                     # Send "bought" to frontend
                     Broker.buy(self.ticker, amount)
+
+                    trade_node.trades.append(
+                        Trade(amount=amount, opening_price=price, opened=datetime.now())
+                    )
+                    session.commit()
+
                     self.state = TradeState.BOUGHT
 
                     sync_queue.put(
@@ -204,6 +237,12 @@ class TradeNode(orm.Base):
                 elif analysis_result == AnalysisResult.GOING_DOWN:
                     # Send "shorting" to frontend
                     Broker.sell(self.ticker)
+
+                    trade_node.trades.append(
+                        Trade(amount=amount, opening_price=price, opened=datetime.now())
+                    )
+                    session.commit()
+
                     self.state = TradeState.SHORTING
 
                     sync_queue.put(
@@ -233,6 +272,11 @@ class TradeNode(orm.Base):
                 if analysis_result == AnalysisResult.GOING_UP:
                     # Send "analyzing" to frontend
                     Broker.buy(self.ticker, amount)
+
+                    last_trade.closed = datetime.now()
+                    last_trade.closing_price = price
+                    session.commit()
+
                     self.state = TradeState.DEFAULT
 
                     sync_queue.put(
@@ -279,10 +323,15 @@ class Trade(orm.Base):
     id = Column(Integer, primary_key=True)
     trade_server_id = Column(Integer, ForeignKey("TradeNodes.ticker"))
     amount = Column(Integer)
-    opening_price = Column(Integer, nullable=False)
-    closing_price = Column(Integer)
+    opening_price = Column(Float, nullable=False)
+    closing_price = Column(Float)
     opened = Column(DateTime, default=datetime.now)
     closed = Column(DateTime)
+
+    def __init__(self, amount: int, opening_price: float, opened):
+        self.amount = amount
+        self.opening_price = opening_price
+        self.opened = opened
 
 
 class Config(orm.Base):
