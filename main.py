@@ -1,28 +1,22 @@
-from multiprocessing import Process, Queue
-from pprint import pprint
-
+import asyncio
 import random
+from contextlib import asynccontextmanager
+from multiprocessing import Process, Queue
+
+import pandas as pd
 import requests_cache
 import yfinance
-import asyncio
-import pandas as pd
-
-from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, WebSocket
 from fastapi import Request
 from fastapi.responses import RedirectResponse, JSONResponse
-from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
+from result import Result, Ok, Err, is_ok, is_err
 
 from db import session
-
-from jellyserve.utils import sha512
 from jellyserve.components import Component, Template
-
-from result import Ok, Err, Result, is_ok, is_err
-from datetime import datetime
-from trading import Broker
-from result import Result, Ok, Err, is_ok, is_err
+from jellyserve.utils import sha512
 from models import User, TradeNode, Settings
+from trading import Broker
 
 
 class SyncConnectionManager:
@@ -62,16 +56,16 @@ async def start_day():
 
 async def _start_day():
     print("Starting Jellyfish!")
-    BUDGET = 1000
+    budget = 1000
 
     trade_node_budget = (
-        BUDGET * (session.query(Settings).first().allocation_of_funds / 100) / 10
+        budget * (session.query(Settings).first().allocation_of_funds / 100) / 10
     )
 
-    potentional_gainers = pd.read_html("https://finance.yahoo.com/gainers")[0]
+    potential_gainers = pd.read_html("https://finance.yahoo.com/gainers")[0]
     gainers: list[TradeNode] = []
 
-    for _, gainer in potentional_gainers.iterrows():
+    for _, gainer in potential_gainers.iterrows():
         price = gainer["Price (Intraday)"]
         ticker = gainer["Symbol"]
 
@@ -85,10 +79,10 @@ async def _start_day():
         print(ticker, price)
         gainers.append(TradeNode(ticker=ticker, active=True))
 
-    potentional_losers = pd.read_html("https://finance.yahoo.com/losers")[0]
+    potential_losers = pd.read_html("https://finance.yahoo.com/losers")[0]
     losers: list[TradeNode] = []
 
-    for _, loser in potentional_losers.iterrows():
+    for _, loser in potential_losers.iterrows():
         price = loser["Price (Intraday)"]
         ticker = loser["Symbol"]
 
@@ -139,7 +133,7 @@ async def end_day():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     await start_day()
     yield
     await end_day()
@@ -207,7 +201,7 @@ async def login(request: Request):
         return RedirectResponse(status_code=302, url="/")
 
 
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Literal
 
 
 class Dashboard(Component):
@@ -296,7 +290,7 @@ async def healthcheck_wrapper(request: Request):
     user_result = get_user(request)
     if is_err(user_result):
         return user_result.err_value
-    user: User = user_result.ok_value
+    _user: User = user_result.ok_value
 
     return JSONResponse(await healthcheck())
 
@@ -409,7 +403,7 @@ async def post_settings(request: Request):
 
 class SyncHandler:
     @staticmethod
-    def graph_sync(user: User, req: dict) -> list[dict]:
+    def graph_sync(_user: User, req: dict) -> list[dict]:
         stock_data = yfinance.Ticker(req["ticker"]).history(period=req["sync_time"])
 
         timestamps = pd.to_datetime(stock_data.index)
@@ -425,10 +419,12 @@ class SyncHandler:
         ]
         return response
 
-    def stop_trading(user: User, req: dict) -> list[dict]:
+    @staticmethod
+    def stop_trading(_user: User, _req: dict) -> dict[Literal["result"], str]:
         return {"result": "ok"}
 
-    def start_trading(user: User, req: dict) -> list[dict]:
+    @staticmethod
+    def start_trading(_user: User, _req: dict) -> dict[Literal["result"], str]:
         return {"result": "ok"}
 
 

@@ -1,8 +1,8 @@
-import random
+from dataclasses import dataclass
 from enum import Enum
-import time
-from result import Result, Ok, Err
+
 import yfinance
+from result import Result, Ok
 
 
 class TradeState(str, Enum):
@@ -23,7 +23,7 @@ class Broker:
     working_hours: str = "8:00 - 18:00"
 
     @staticmethod
-    def is_available(ticker: str) -> Result[bool, str]:
+    def is_available(_ticker: str) -> Result[bool, str]:
         return Ok(True)
 
     @staticmethod
@@ -36,81 +36,47 @@ class Broker:
         print(f"Buying {amount} {ticker}")
         return Ok(None)
 
+@dataclass
+class Brokerage:
+    budget: float
+    bought_price: float | None = None
+    bought_stocks: int = 0
+    mode: TradeState = TradeState.DEFAULT
 
-class _PriceFeed:
-    def __new__(cls, *args):
-        prices = yfinance.download("HOG", period="1d", interval="1m")["Close"]
-        print(prices)
-        return prices
+    def buy(self, price: float, amount: int) -> None:
+        total_price = amount * price
+        if total_price < self.budget:
+            self.bought_price = price
+            self.budget -= total_price
+            self.bought_stocks = amount
+            self.mode = TradeState.BOUGHT
 
+    def sell(self, price: float) -> None:
+        total_price = self.bought_stocks * price
+        self.budget += total_price
+        self.bought_stocks = 0
+        self.bought_price = None
+        self.mode = TradeState.DEFAULT
 
-class PriceFeed:
-    def __new__(cls, *args):
-        return [
-            10,
-            20,
-            30,
-            40,
-            50,
-            60,
-            70,
-            80,
-            90,
-            100,
-            110,
-            120,
-            110,
-            100,
-            110,
-            100,
-            90,
-            80,
-            70,
-            60,
-            70,
-            80,
-            90,
-            100,
-            110,
-            130,
-            150,
-            140,
-            145,
-            140,
-            140,
-            150,
-            160,
-            170,
-            180,
-            160,
-            150,
-            140,
-            130,
-            120,
-            110,
-            110,
-            120,
-            100,
-            90,
-            80,
-            80,
-            90,
-            100,
-            110,
-            120,
-            130,
-            140,
-            150,
-        ]
+    def short(self, price: float, amount: int) -> None:
+        self.buy(price, amount)
+        self.mode = TradeState.SHORTING
 
+    def end_short(self, price: float) -> None:
+        start_price = self.bought_stocks * self.bought_price
+        end_price = self.bought_stocks * price
 
-class _PriceFeed:
-    def __init__(self, ticker: str) -> None:
-        self.ticker = ticker
+        profit = start_price - end_price
 
-    def __iter__(self):
-        return self
+        self.budget += start_price + profit
+        self.bought_price = None
+        self.bought_stocks = 0
+        self.mode = TradeState.DEFAULT
 
-    def __next__(self):
-        time.sleep(0.1)
-        return random.randint(1, 100)
+    def end_trading(self, price):
+        if self.mode == TradeState.DEFAULT:
+            pass
+        elif self.mode == TradeState.BOUGHT:
+            self.sell(price)
+        elif self.mode == TradeState.SHORTING:
+            self.end_short(price)

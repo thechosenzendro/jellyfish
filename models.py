@@ -1,12 +1,15 @@
-from multiprocessing import Queue
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, DateTime
-import queue
-from db import orm, session
-from trading import TradeState, PriceFeed, AnalysisResult
 import asyncio
-from trading import Broker
+import random
 from datetime import datetime
+from multiprocessing import Queue
+from typing import Iterator, Literal
+
+from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+
+from db import orm, session
+from trading import Brokerage
+from trading import TradeState, AnalysisResult
 
 
 class User(orm.Base):
@@ -41,10 +44,11 @@ class TradeNode(orm.Base):
     trades = relationship("Trade", backref="trade_node")
 
     def __init__(self, ticker: str, active: bool = False):
+        self.state = TradeState.DEFAULT
         self.ticker = ticker
         self.active = active
-
-    def _analyze(self, groups: list[list[int]]) -> AnalysisResult:
+    @staticmethod
+    def _analyze(groups: list[list[float]]) -> AnalysisResult:
         comparison_results = []
         for group in groups:
             comparison_results.append(
@@ -60,7 +64,6 @@ class TradeNode(orm.Base):
 
         res = []
         for group in comparison_results:
-            print(group)
             up_occurrences = len([e for e in group if e == BiggerThan])
             down_occurrences = len([e for e in group if e == SmallerThan])
 
@@ -75,40 +78,50 @@ class TradeNode(orm.Base):
             if not group == BiggerThan:
                 break
         else:
-            print(f"{groups} {comparison_results}: GOING_UP")
             return AnalysisResult.GOING_UP
 
         for group in res:
             if not group == SmallerThan:
                 break
         else:
-            print(f"{groups} {comparison_results}: GOING_DOWN")
             return AnalysisResult.GOING_DOWN
 
-        print(f"{groups} {comparison_results}: INSUFFICIENT")
         return AnalysisResult.INSUFFICIENT
 
-    def start(self, sync_queue: Queue):
-        asyncio.run(self.trade(sync_queue))
+    def start(self, sync_queue: Queue) -> Brokerage:
+        return asyncio.run(self.trade(sync_queue))
 
-    async def trade(self, sync_queue: Queue):
+    @staticmethod
+    def price_feed() -> Iterator[dict[Literal["price"], float]]:
+        while True:
+            yield {"price": random.random() * 100}
+
+    async def trade(self, sync_queue: Queue) -> Brokerage:
         trade_node = session.query(TradeNode).filter_by(ticker=self.ticker).first()
         self.state = TradeState.DEFAULT
 
+        brokerage = Brokerage(1000)
         group = []
-        groups = []
-        for price in PriceFeed(self.ticker):
+        groups: list[list[float]] = []
+        last_price = None
+        price = None
+        for i, price in enumerate(datapoint["price"] for datapoint in self.price_feed()):
+            print(price)
             if not self.active:
                 break
 
+            if i == 0:
+                last_price = price
+                continue
+
             try:
-                last_trade: Trade = trade_node.trades[-1]
+                last_trade: Trade | None = trade_node.trades[-1]
             except IndexError:
                 last_trade = None
             if last_trade is not None and not last_trade.closing_price:
                 if self.state == TradeState.BOUGHT:
                     if price < last_trade.opening_price:
-                        Broker.sell(self.ticker)
+                        brokerage.sell(price)
                         last_trade.closed = datetime.now()
                         last_trade.closing_price = price
                         session.commit()
@@ -116,12 +129,27 @@ class TradeNode(orm.Base):
 
                 elif self.state == TradeState.SHORTING:
                     if price > last_trade.opening_price:
-                        Broker.buy(self.ticker, last_trade.amount)
+                        brokerage.end_short(price)
                         last_trade.closed = datetime.now()
                         last_trade.closing_price = price
                         session.commit()
                         self.state = TradeState.DEFAULT
-            print(last_trade)
+
+            if self.state == TradeState.BOUGHT:
+                if last_price > price:
+                    brokerage.sell(price)
+                    last_trade.closed = datetime.now()
+                    last_trade.closing_price = price
+                    session.commit()
+                    self.state = TradeState.DEFAULT
+
+            elif self.state == TradeState.SHORTING:
+                if last_price < price:
+                    brokerage.end_short(price)
+                    last_trade.closed = datetime.now()
+                    last_trade.closing_price = price
+                    session.commit()
+                    self.state = TradeState.DEFAULT
 
             # Accumulating the values
             if len(group) == session.query(Settings).first().prices_in_groups:
@@ -138,6 +166,7 @@ class TradeNode(orm.Base):
                         "state": self.state,
                     }
                 )
+                last_price = price
                 continue
             if not (len(groups) == session.query(Settings).first().groups):
                 group.append(price)
@@ -150,23 +179,21 @@ class TradeNode(orm.Base):
                         "state": self.state,
                     }
                 )
+                last_price = price
                 continue
-
-            print("Doing an action!")
 
             analysis_result = self._analyze(groups)
 
             group.clear()
             groups.clear()
-            BUDGET = 1000
+            budget = 1000
             budget = (
-                BUDGET
+                budget
                 * (session.query(Settings).first().allocation_of_funds / 100)
                 / 10
             )
             amount = budget / price
 
-            print(self.state, analysis_result)
             if self.state == TradeState.BOUGHT:
                 if analysis_result == AnalysisResult.GOING_UP:
                     # Send "bought" to frontend
@@ -182,7 +209,7 @@ class TradeNode(orm.Base):
 
                 elif analysis_result == AnalysisResult.GOING_DOWN:
                     # Send "analyzing" to frontend
-                    Broker.sell(self.ticker)
+                    brokerage.sell(price)
                     last_trade.closed = datetime.now()
                     last_trade.closing_price = price
                     session.commit()
@@ -215,8 +242,7 @@ class TradeNode(orm.Base):
             elif self.state == TradeState.DEFAULT:
                 if analysis_result == AnalysisResult.GOING_UP:
                     # Send "bought" to frontend
-                    Broker.buy(self.ticker, amount)
-
+                    brokerage.buy(price, amount)
                     trade_node.trades.append(
                         Trade(amount=amount, opening_price=price, opened=datetime.now())
                     )
@@ -236,7 +262,7 @@ class TradeNode(orm.Base):
 
                 elif analysis_result == AnalysisResult.GOING_DOWN:
                     # Send "shorting" to frontend
-                    Broker.sell(self.ticker)
+                    brokerage.short(price, amount)
 
                     trade_node.trades.append(
                         Trade(amount=amount, opening_price=price, opened=datetime.now())
@@ -271,13 +297,11 @@ class TradeNode(orm.Base):
             elif self.state == TradeState.SHORTING:
                 if analysis_result == AnalysisResult.GOING_UP:
                     # Send "analyzing" to frontend
-                    Broker.buy(self.ticker, amount)
+                    brokerage.end_short(price)
 
                     last_trade.closed = datetime.now()
                     last_trade.closing_price = price
                     session.commit()
-
-                    self.state = TradeState.DEFAULT
 
                     sync_queue.put(
                         {
@@ -314,6 +338,9 @@ class TradeNode(orm.Base):
                             "state": "shorting",
                         }
                     )
+            last_price = price
+        brokerage.end_trading(price)
+        return brokerage
 
     async def stop(self): ...
 
